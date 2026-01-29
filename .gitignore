@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Secrets / configuración local
+SportBoardApp/Constants.swift
+
+# Xcode
+DerivedData
+build
+*.xcuserstate
+xcuserdata
+*.xcworkspace/xcuserdata
+
+# SwiftPM
+.build
+
+# Logs
+*.log
+
+# Secrets / config
+*.plist.lock
