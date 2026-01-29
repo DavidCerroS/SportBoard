@@ -2,7 +2,8 @@
 .DS_Store
 
 # Secrets / configuración local
-SportBoardApp/Constants.swift
+SportBoardApp/Utilities/Constants.swift
+
 
 # Xcode
 DerivedData
