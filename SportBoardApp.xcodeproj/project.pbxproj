@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		B1A1011F2F2A700100000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A09098022F2A62A700C32BD7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A09098092F2A62A700C32BD7;
+			remoteInfo = SportBoardApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		A090980A2F2A62A700C32BD7 /* SportBoardApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SportBoardApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1A1001F2F2A700100000001 /* SportBoardAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SportBoardAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -136,6 +146,7 @@
 					};
 					B1A1003F2F2A700100000003 = {
 						CreatedOnToolsVersion = 26.2;
+						TestTargetID = A09098092F2A62A700C32BD7;
 					};
 				};
 			};
@@ -200,16 +211,6 @@
 			targetProxy = B1A1011F2F2A700100000011 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin PBXContainerItemProxy section */
-		B1A1011F2F2A700100000011 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A09098022F2A62A700C32BD7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A09098092F2A62A700C32BD7;
-			remoteInfo = SportBoardApp;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin XCBuildConfiguration section */
 		A09098132F2A62AB00C32BD7 /* Debug */ = {
@@ -417,7 +418,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.NullCompany.SportBoardAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/$(EXECUTABLE_PATH)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/SportBoardApp";
 			};
 			name = Debug;
 		};
@@ -439,7 +440,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.NullCompany.SportBoardAppTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/$(EXECUTABLE_PATH)";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/SportBoardApp";
 			};
 			name = Release;
 		};

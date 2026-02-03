@@ -68,7 +68,6 @@ struct BadRunDetector {
         
         let splitsToUse = splits ?? activity.sortedSplits
         let easyPaceMs = profile?.easyPaceMs ?? 0
-        let thresholdPaceMs = profile?.thresholdPaceMs ?? 0
         
         // 1. FC demasiado alta para ese ritmo (si tenemos perfil y HR)
         if quality.canUseHeartrateMetrics, let hr = activity.averageHeartrate, easyPaceMs > 0 {

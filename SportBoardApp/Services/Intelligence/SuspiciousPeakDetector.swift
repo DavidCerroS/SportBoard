@@ -49,10 +49,8 @@ struct SuspiciousPeakDetector {
         let twoWeeksAgoStart = calendar.date(byAdding: .weekOfYear, value: -2, to: weekStart) ?? weekStart
         
         let currentWeekEnd = calendar.date(byAdding: .day, value: 7, to: currentWeekStart) ?? currentWeekStart
-        let previousWeekEnd = calendar.date(byAdding: .day, value: 7, to: previousWeekStart) ?? previousWeekStart
         
         let inCurrent = runs.filter { $0.startDate >= currentWeekStart && $0.startDate < currentWeekEnd }
-        let inPrevious = runs.filter { $0.startDate >= previousWeekStart && $0.startDate < previousWeekEnd }
         let inTwoWeeksAgo = runs.filter { $0.startDate >= twoWeeksAgoStart && $0.startDate < previousWeekStart }
         
         guard inCurrent.count >= minActivitiesPerWindow, inTwoWeeksAgo.count >= minActivitiesPerWindow else {

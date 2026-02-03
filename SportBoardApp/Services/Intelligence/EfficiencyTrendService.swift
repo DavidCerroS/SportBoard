@@ -20,7 +20,6 @@ struct EfficiencyTrendResult {
 struct EfficiencyTrendService {
     
     private static let weeksToAnalyze = 6
-    private static let minActivitiesPerWeek = 1
     
     /// Calcula tendencia para actividades de carrera.
     static func compute(
@@ -43,7 +42,6 @@ struct EfficiencyTrendService {
         var weeklyPaces: [Date: [Double]] = [:]
         var weeklyHR: [Date: [Double]] = [:]
         
-        let easyPaceMs = profile?.easyPaceMs ?? 0
         let runTypes = ["run", "virtualrun", "trailrun"]
         let runs = activities.filter { runTypes.contains($0.sportType.lowercased()) }
             .filter { $0.movingTime >= 15 * 60 && $0.averageSpeed > 0 }
