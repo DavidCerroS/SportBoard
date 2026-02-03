@@ -1,0 +1,33 @@
+{
+  "activity": {
+    "id": 1005,
+    "name": "Intervals Session",
+    "sportType": "Run",
+    "startDate": "2024-02-20T18:00:00Z",
+    "distance": 10000,
+    "movingTime": 3600,
+    "elapsedTime": 3700,
+    "totalElevationGain": 55,
+    "averageSpeed": 2.78,
+    "maxSpeed": 4.4,
+    "averageHeartrate": 158,
+    "maxHeartrate": 182,
+    "hasHeartrate": true,
+    "hasSplitsMetric": true,
+    "hasLaps": true
+  },
+  "splits": [
+    { "splitIndex": 0, "distance": 1000, "movingTime": 320, "elapsedTime": 320, "averageSpeed": 3.12, "averageHeartrate": 160, "elevationDifference": 1, "paceZone": 3 },
+    { "splitIndex": 1, "distance": 1000, "movingTime": 330, "elapsedTime": 330, "averageSpeed": 3.03, "averageHeartrate": 162, "elevationDifference": 0, "paceZone": 3 },
+    { "splitIndex": 2, "distance": 1000, "movingTime": 360, "elapsedTime": 360, "averageSpeed": 2.78, "averageHeartrate": 155, "elevationDifference": -1, "paceZone": 2 },
+    { "splitIndex": 3, "distance": 1000, "movingTime": 300, "elapsedTime": 300, "averageSpeed": 3.33, "averageHeartrate": 170, "elevationDifference": 2, "paceZone": 4 },
+    { "splitIndex": 4, "distance": 1000, "movingTime": 380, "elapsedTime": 380, "averageSpeed": 2.63, "averageHeartrate": 150, "elevationDifference": -2, "paceZone": 2 }
+  ],
+  "laps": [
+    { "lapIndex": 0, "name": "Warmup", "distance": 2000, "movingTime": 720, "elapsedTime": 720, "startIndex": 0, "endIndex": 2000, "averageSpeed": 2.78, "maxSpeed": 3.2, "averageHeartrate": 150, "totalElevationGain": 10 },
+    { "lapIndex": 1, "name": "Rep 1", "distance": 1000, "movingTime": 300, "elapsedTime": 300, "startIndex": 2000, "endIndex": 3000, "averageSpeed": 3.33, "maxSpeed": 4.2, "averageHeartrate": 172, "totalElevationGain": 5 },
+    { "lapIndex": 2, "name": "Rep 2", "distance": 1000, "movingTime": 295, "elapsedTime": 295, "startIndex": 3000, "endIndex": 4000, "averageSpeed": 3.39, "maxSpeed": 4.4, "averageHeartrate": 175, "totalElevationGain": 4 },
+    { "lapIndex": 3, "name": "Rep 3", "distance": 1000, "movingTime": 305, "elapsedTime": 305, "startIndex": 4000, "endIndex": 5000, "averageSpeed": 3.28, "maxSpeed": 4.1, "averageHeartrate": 173, "totalElevationGain": 6 },
+    { "lapIndex": 4, "name": "Cooldown", "distance": 2000, "movingTime": 760, "elapsedTime": 760, "startIndex": 5000, "endIndex": 7000, "averageSpeed": 2.63, "maxSpeed": 3.0, "averageHeartrate": 150, "totalElevationGain": 8 }
+  ]
+}

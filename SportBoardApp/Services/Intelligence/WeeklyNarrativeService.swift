@@ -18,9 +18,10 @@ struct WeeklyNarrativeService {
         profile: RunnerProfile?,
         consistency: ConsistencyBreakdown?,
         fatigue: FatigueDiagnosis?,
-        efficiencyTrend: EfficiencyTrendDirection? = nil
+        efficiencyTrend: EfficiencyTrendDirection? = nil,
+        dateProvider: DateProviding = SystemDateProvider()
     ) throws -> String {
-        let activities = try fetchThisWeekRuns(modelContext: modelContext)
+        let activities = try fetchThisWeekRuns(modelContext: modelContext, dateProvider: dateProvider)
         return generateFromData(
             weekActivities: activities,
             profile: profile,
@@ -134,10 +135,14 @@ struct WeeklyNarrativeService {
     
     /// Esta semana = [Lunes 00:00 Madrid, siguiente Lunes 00:00 Madrid). Solo actividades Run.
     /// Se obtienen las actividades más recientes (orden descendente) y se filtran por rango para no perder las de esta semana.
-    private static func fetchThisWeekRuns(modelContext: ModelContext) throws -> [Activity] {
-        let now = Date()
-        let weekStart = now.startOfWeekMadrid
-        let weekEnd = now.startOfNextWeekMadrid
+    static func fetchThisWeekRuns(
+        modelContext: ModelContext,
+        dateProvider: DateProviding = SystemDateProvider(),
+        calendar: Calendar = Calendar.sportBoardMadrid
+    ) throws -> [Activity] {
+        let now = dateProvider.now
+        let weekStart = now.startOfWeek(using: calendar)
+        let weekEnd = now.startOfNextWeek(using: calendar)
         var descriptor = FetchDescriptor<Activity>(sortBy: [SortDescriptor(\.startDate, order: .reverse)])
         descriptor.fetchLimit = 200
         let all = try modelContext.fetch(descriptor)
@@ -152,4 +157,3 @@ enum EfficiencyTrendDirection: String {
     case stable
     case declining
 }
-

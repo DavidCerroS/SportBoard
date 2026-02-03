@@ -49,10 +49,11 @@ struct WeekComparatorService {
     static func weekSummary(
         for date: Date,
         activities: [Activity],
-        profile: RunnerProfile?
+        profile: RunnerProfile?,
+        calendar: Calendar = Calendar.sportBoardMadrid
     ) -> WeekSummary {
-        let weekStart = date.startOfWeekMadrid
-        let weekEnd = date.startOfNextWeekMadrid
+        let weekStart = date.startOfWeek(using: calendar)
+        let weekEnd = date.startOfNextWeek(using: calendar)
         let inWeek = activities.filter { act in
             act.startDate >= weekStart && act.startDate < weekEnd
         }
@@ -150,7 +151,8 @@ struct WeekComparatorService {
     static func fetchPastWeekSummaries(
         modelContext: ModelContext,
         profile: RunnerProfile?,
-        upToWeeks: Int = maxWeeksToSearch
+        upToWeeks: Int = maxWeeksToSearch,
+        calendar: Calendar = Calendar.sportBoardMadrid
     ) throws -> [WeekSummary] {
         var descriptor = FetchDescriptor<Activity>(
             sortBy: [SortDescriptor(\.startDate, order: .forward)]
@@ -160,14 +162,14 @@ struct WeekComparatorService {
         let runTypes = ["run", "virtualrun", "trailrun"]
         let runs = all.filter { runTypes.contains($0.sportType.lowercased()) }
         
-        let byWeek = Dictionary(grouping: runs) { $0.startDate.startOfWeekMadrid }
+        let byWeek = Dictionary(grouping: runs) { $0.startDate.startOfWeek(using: calendar) }
         let sortedWeeks = byWeek.keys.sorted(by: >)
         let weeksToTake = Array(sortedWeeks.prefix(upToWeeks))
         
         return weeksToTake.compactMap { weekStart in
             let acts = byWeek[weekStart] ?? []
             guard !acts.isEmpty else { return nil }
-            return weekSummary(for: weekStart, activities: runs, profile: profile)
+            return weekSummary(for: weekStart, activities: runs, profile: profile, calendar: calendar)
         }
     }
 }

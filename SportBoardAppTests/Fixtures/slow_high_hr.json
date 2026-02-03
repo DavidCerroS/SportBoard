@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1009,
+    "name": "Slow High HR",
+    "sportType": "Run",
+    "startDate": "2024-02-27T19:00:00Z",
+    "distance": 5000,
+    "movingTime": 2400,
+    "elapsedTime": 2450,
+    "totalElevationGain": 25,
+    "averageSpeed": 2.08,
+    "maxSpeed": 2.6,
+    "averageHeartrate": 155,
+    "maxHeartrate": 170,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

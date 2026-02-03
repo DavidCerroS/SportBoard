@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1007,
+    "name": "Trail Run",
+    "sportType": "TrailRun",
+    "startDate": "2024-02-25T09:00:00Z",
+    "distance": 12000,
+    "movingTime": 4200,
+    "elapsedTime": 4300,
+    "totalElevationGain": 350,
+    "averageSpeed": 2.85,
+    "maxSpeed": 3.6,
+    "averageHeartrate": 152,
+    "maxHeartrate": 175,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

@@ -8,6 +8,7 @@
 
 /* Begin PBXFileReference section */
 		A090980A2F2A62A700C32BD7 /* SportBoardApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SportBoardApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1A1001F2F2A700100000001 /* SportBoardAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SportBoardAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +30,22 @@
 			path = SportBoardApp;
 			sourceTree = "<group>";
 		};
+		B1A1002F2F2A700100000002 /* SportBoardAppTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SportBoardAppTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A09098072F2A62A700C32BD7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1A1005F2F2A700100000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				A090980C2F2A62A700C32BD7 /* SportBoardApp */,
+				B1A1002F2F2A700100000002 /* SportBoardAppTests */,
 				A090980B2F2A62A700C32BD7 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +68,7 @@
 			isa = PBXGroup;
 			children = (
 				A090980A2F2A62A700C32BD7 /* SportBoardApp.app */,
+				B1A1001F2F2A700100000001 /* SportBoardAppTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +98,29 @@
 			productReference = A090980A2F2A62A700C32BD7 /* SportBoardApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B1A1003F2F2A700100000003 /* SportBoardAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1A1009F2F2A700100000009 /* Build configuration list for PBXNativeTarget "SportBoardAppTests" */;
+			buildPhases = (
+				B1A1004F2F2A700100000004 /* Sources */,
+				B1A1005F2F2A700100000005 /* Frameworks */,
+				B1A1006F2F2A700100000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B1A1010F2F2A700100000010 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B1A1002F2F2A700100000002 /* SportBoardAppTests */,
+			);
+			name = SportBoardAppTests;
+			packageProductDependencies = (
+			);
+			productName = SportBoardAppTests;
+			productReference = B1A1001F2F2A700100000001 /* SportBoardAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -94,6 +132,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					A09098092F2A62A700C32BD7 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					B1A1003F2F2A700100000003 = {
 						CreatedOnToolsVersion = 26.2;
 					};
 				};
@@ -113,12 +154,20 @@
 			projectRoot = "";
 			targets = (
 				A09098092F2A62A700C32BD7 /* SportBoardApp */,
+				B1A1003F2F2A700100000003 /* SportBoardAppTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A09098082F2A62A700C32BD7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1A1006F2F2A700100000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +184,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B1A1004F2F2A700100000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1A1010F2F2A700100000010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A09098092F2A62A700C32BD7 /* SportBoardApp */;
+			targetProxy = B1A1011F2F2A700100000011 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXContainerItemProxy section */
+		B1A1011F2F2A700100000011 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A09098022F2A62A700C32BD7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A09098092F2A62A700C32BD7;
+			remoteInfo = SportBoardApp;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin XCBuildConfiguration section */
 		A09098132F2A62AB00C32BD7 /* Debug */ = {
@@ -325,6 +399,50 @@
 			};
 			name = Release;
 		};
+		B1A1007F2F2A700100000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 35GP2VV4NB;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.NullCompany.SportBoardAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/$(EXECUTABLE_PATH)";
+			};
+			name = Debug;
+		};
+		B1A1008F2F2A700100000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 35GP2VV4NB;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.NullCompany.SportBoardAppTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/SportBoardApp.app/$(EXECUTABLE_PATH)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -342,6 +460,15 @@
 			buildConfigurations = (
 				A09098162F2A62AB00C32BD7 /* Debug */,
 				A09098172F2A62AB00C32BD7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B1A1009F2F2A700100000009 /* Build configuration list for PBXNativeTarget "SportBoardAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1A1007F2F2A700100000007 /* Debug */,
+				B1A1008F2F2A700100000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
