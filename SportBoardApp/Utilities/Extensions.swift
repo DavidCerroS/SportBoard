@@ -8,7 +8,20 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Date Extensions
+// MARK: - Calendar (Europe/Madrid, Lunes como primer día)
+
+private var _madridCalendar: Calendar = {
+    var cal = Calendar(identifier: .gregorian)
+    cal.timeZone = TimeZone(identifier: "Europe/Madrid")!
+    cal.locale = Locale(identifier: "es_ES")
+    cal.firstWeekday = 2 // Lunes
+    return cal
+}()
+
+extension Calendar {
+    /// Calendario para agrupar por semana en España: Europe/Madrid, es_ES, firstWeekday = 2 (Lunes).
+    static var sportBoardMadrid: Calendar { _madridCalendar }
+}
 
 extension Date {
     var startOfDay: Date {
@@ -19,6 +32,20 @@ extension Date {
         let calendar = Calendar.current
         let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
         return calendar.date(from: components) ?? self
+    }
+    
+    /// Inicio de la semana (Lunes 00:00) en Europe/Madrid. Usar para "esta semana" y consistencia.
+    var startOfWeekMadrid: Date {
+        let cal = Calendar.sportBoardMadrid
+        let components = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
+        return cal.date(from: components) ?? self
+    }
+    
+    /// Inicio de la semana siguiente en Europe/Madrid. Rango de esta semana: [startOfWeekMadrid, startOfNextWeekMadrid).
+    var startOfNextWeekMadrid: Date {
+        let cal = Calendar.sportBoardMadrid
+        guard let start = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)) else { return self }
+        return cal.date(byAdding: .day, value: 7, to: start) ?? self
     }
     
     var startOfMonth: Date {

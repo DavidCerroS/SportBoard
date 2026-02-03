@@ -12,6 +12,11 @@ struct ActivityDetailView: View {
     let activity: Activity
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ActivityDetailViewModel
+    @State private var showReflectionSheet = false
+    
+    private var isRun: Bool {
+        ["run", "virtualrun", "trailrun"].contains(activity.sportType.lowercased())
+    }
     
     init(activity: Activity) {
         self.activity = activity
@@ -26,6 +31,48 @@ struct ActivityDetailView: View {
                 
                 // Stats principales
                 statsGrid
+                
+                // Inteligencia local: clasificación y rodaje mal ejecutado (solo carrera)
+                if isRun {
+                    if let c = viewModel.runClassification, c.shouldShow {
+                        HStack {
+                            Text(c.type.displayName)
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.stravaOrange.opacity(0.2))
+                                .clipShape(Capsule())
+                            Spacer()
+                        }
+                    }
+                    if let b = viewModel.badRunInsight, b.hasIssue {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("Insight", systemImage: "lightbulb")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text(b.summary)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if !b.causes.isEmpty {
+                                ForEach(b.causes, id: \.self) { cause in
+                                    Text("• \(cause)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            if !b.suggestedAction.isEmpty {
+                                Text(b.suggestedAction)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(Color.orange.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
                 
                 // Sección de parciales (carga bajo demanda)
                 if viewModel.isLoadingDetails {
@@ -77,10 +124,22 @@ struct ActivityDetailView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 ExportMenuView(viewModel: viewModel)
             }
+            if isRun {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showReflectionSheet = true
+                    } label: {
+                        Label("Reflexión", systemImage: "text.bubble")
+                    }
+                }
+            }
         }
         .task {
-            // Cargar detalles bajo demanda cuando se abre la vista
             await viewModel.loadDetailsIfNeeded(context: modelContext)
+            viewModel.loadIntelligence(context: modelContext)
+        }
+        .sheet(isPresented: $showReflectionSheet) {
+            PostActivityReflectionView(activity: activity)
         }
         .alert("JSON Copiado", isPresented: $viewModel.showCopiedAlert) {
             Button("OK") {}
