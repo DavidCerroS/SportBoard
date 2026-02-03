@@ -23,10 +23,51 @@ final class ActivityDetailViewModel {
     var isResyncing = false
     var resyncSuccess = false
     
+    /// Inteligencia local: clasificación y detector de rodaje mal ejecutado (solo carrera)
+    var runClassification: RunClassification?
+    var badRunInsight: BadRunInsight?
+    
     private let syncService = SyncService.shared
     
     init(activity: Activity) {
         self.activity = activity
+    }
+    
+    /// Carga clasificación y insight de rodaje (requiere contexto y opcionalmente detalles ya cargados).
+    func loadIntelligence(context: ModelContext) {
+        let runTypes = ["run", "virtualrun", "trailrun"]
+        guard runTypes.contains(activity.sportType.lowercased()) else { return }
+        
+        let profile = try? RunnerProfileService.fetchProfile(modelContext: context)
+        let easyMs = profile?.easyPaceMs
+        let threshMs = profile?.thresholdPaceMs
+        
+        runClassification = RunClassifier.classify(
+            activity: activity,
+            splits: activity.sortedSplits,
+            laps: activity.sortedLaps,
+            easyPaceMs: easyMs,
+            thresholdPaceMs: threshMs
+        )
+        
+        var previousDay: Activity?
+        let calendar = Calendar.current
+        let dayStart = calendar.startOfDay(for: activity.startDate)
+        let previousDayStart = calendar.date(byAdding: .day, value: -1, to: dayStart) ?? dayStart
+        let previousDayEnd = calendar.date(byAdding: .day, value: 1, to: previousDayStart) ?? previousDayStart
+        var descriptor = FetchDescriptor<Activity>(sortBy: [SortDescriptor(\.startDate, order: .reverse)])
+        descriptor.fetchLimit = 50
+        let recent = (try? context.fetch(descriptor)) ?? []
+        previousDay = recent.first { act in
+            act.id != activity.id && act.startDate >= previousDayStart && act.startDate < previousDayEnd
+        }
+        
+        badRunInsight = BadRunDetector.evaluate(
+            activity: activity,
+            splits: activity.sortedSplits,
+            profile: profile,
+            previousDayActivity: previousDay
+        )
     }
     
     // MARK: - Load Details On Demand

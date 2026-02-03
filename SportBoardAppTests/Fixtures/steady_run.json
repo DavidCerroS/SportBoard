@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1011,
+    "name": "Steady Run",
+    "sportType": "Run",
+    "startDate": "2024-02-29T07:00:00Z",
+    "distance": 7000,
+    "movingTime": 2400,
+    "elapsedTime": 2420,
+    "totalElevationGain": 35,
+    "averageSpeed": 2.92,
+    "maxSpeed": 3.4,
+    "averageHeartrate": 140,
+    "maxHeartrate": 160,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

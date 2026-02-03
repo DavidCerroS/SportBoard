@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum Constants {
+enum ConstantsExample {
     enum Strava {
         // MARK: - Configurar con tus credenciales de Strava
         static let clientId = "<SET_ME>"

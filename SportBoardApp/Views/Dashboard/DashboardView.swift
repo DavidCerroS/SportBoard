@@ -410,6 +410,8 @@ struct SettingsView: View {
             try modelContext.delete(model: ActivityLap.self)
             try modelContext.delete(model: ActivitySplit.self)
             try modelContext.delete(model: SyncState.self)
+            try modelContext.delete(model: RunnerProfile.self)
+            try modelContext.delete(model: PostActivityReflection.self)
             try modelContext.save()
             
             activityCount = 0
@@ -425,7 +427,11 @@ struct SettingsView: View {
 
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
-    let container = try! ModelContainer(for: Activity.self, ActivityLap.self, ActivitySplit.self, SyncState.self, configurations: config)
+    let container = try! ModelContainer(
+        for: Activity.self, ActivityLap.self, ActivitySplit.self, SyncState.self,
+        RunnerProfile.self, PostActivityReflection.self,
+        configurations: config
+    )
     
     return DashboardView(
         viewModel: DashboardViewModel(),

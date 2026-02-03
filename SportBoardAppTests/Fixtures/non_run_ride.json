@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1008,
+    "name": "Ride",
+    "sportType": "Ride",
+    "startDate": "2024-02-26T07:00:00Z",
+    "distance": 20000,
+    "movingTime": 3600,
+    "elapsedTime": 3700,
+    "totalElevationGain": 180,
+    "averageSpeed": 5.5,
+    "maxSpeed": 9.0,
+    "averageHeartrate": 135,
+    "maxHeartrate": 160,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

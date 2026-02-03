@@ -20,10 +20,7 @@
       "ritmo": "6:15",
       "ritmo_s_km": 375,
       "desnivel_m": 12,
-      "fc_media": 145,
-      "fc_max": 158,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 145
     },
     {
       "parcial": 2,
@@ -34,10 +31,7 @@
       "ritmo": "5:58",
       "ritmo_s_km": 358,
       "desnivel_m": 8,
-      "fc_media": 150,
-      "fc_max": 162,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 150
     },
     {
       "parcial": 3,
@@ -48,10 +42,7 @@
       "ritmo": "5:52",
       "ritmo_s_km": 352,
       "desnivel_m": 15,
-      "fc_media": 153,
-      "fc_max": 165,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 153
     },
     {
       "parcial": 4,
@@ -62,10 +53,7 @@
       "ritmo": "5:45",
       "ritmo_s_km": 345,
       "desnivel_m": 10,
-      "fc_media": 155,
-      "fc_max": 168,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 155
     },
     {
       "parcial": 5,
@@ -76,10 +64,7 @@
       "ritmo": "5:50",
       "ritmo_s_km": 350,
       "desnivel_m": 18,
-      "fc_media": 156,
-      "fc_max": 170,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 156
     },
     {
       "parcial": 6,
@@ -90,10 +75,7 @@
       "ritmo": "5:55",
       "ritmo_s_km": 355,
       "desnivel_m": 14,
-      "fc_media": 154,
-      "fc_max": 167,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 154
     },
     {
       "parcial": 7,
@@ -104,10 +86,7 @@
       "ritmo": "6:02",
       "ritmo_s_km": 362,
       "desnivel_m": 11,
-      "fc_media": 152,
-      "fc_max": 165,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 152
     },
     {
       "parcial": 8,
@@ -118,10 +97,7 @@
       "ritmo": "6:08",
       "ritmo_s_km": 368,
       "desnivel_m": 16,
-      "fc_media": 150,
-      "fc_max": 163,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 150
     },
     {
       "parcial": 9,
@@ -132,10 +108,7 @@
       "ritmo": "6:09",
       "ritmo_s_km": 369,
       "desnivel_m": 13,
-      "fc_media": 148,
-      "fc_max": 160,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 148
     },
     {
       "parcial": 10,
@@ -146,10 +119,7 @@
       "ritmo": "5:07",
       "ritmo_s_km": 307,
       "desnivel_m": 8,
-      "fc_media": 155,
-      "fc_max": 178,
-      "potencia_media": null,
-      "cadencia_media": null
+      "fc_media": 155
     }
   ]
 }

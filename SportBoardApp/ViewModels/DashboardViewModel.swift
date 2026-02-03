@@ -30,6 +30,16 @@ final class DashboardViewModel {
     
     var selectedSportFilter: String?
     
+    // Inteligencia local (carrera)
+    var profile: RunnerProfile?
+    var consistencyBreakdown: ConsistencyBreakdown?
+    var fatigueDiagnosis: FatigueDiagnosis?
+    var weeklyNarrative: String = ""
+    var nextWorkoutSuggestion: NextWorkoutSuggestion?
+    var silentAlerts: [SilentAlert] = []
+    var efficiencyTrend: EfficiencyTrendResult?
+    var suspiciousPeak: SuspiciousPeakResult?
+    
     private var modelContext: ModelContext?
     
     func configure(modelContext: ModelContext) {
@@ -65,12 +75,24 @@ final class DashboardViewModel {
                 averageHeartrate = nil
             }
             
-            // Stats esta semana
-            let weekStart = Date().startOfWeek
-            let thisWeekActivities = activities.filter { $0.startDate >= weekStart }
-            self.thisWeekActivities = thisWeekActivities.count
-            thisWeekDistance = thisWeekActivities.reduce(0) { $0 + $1.distance }
-            thisWeekTime = thisWeekActivities.reduce(0) { $0 + $1.movingTime }
+            // Stats esta semana: rango [startOfWeek, startOfNextWeek) en Europe/Madrid, solo Run
+            let now = Date()
+            let weekStart = now.startOfWeekMadrid
+            let weekEnd = now.startOfNextWeekMadrid
+            let runTypes = ["run", "virtualrun", "trailrun"]
+            let thisWeekRuns = activities.filter { act in
+                runTypes.contains(act.sportType.lowercased())
+                    && act.startDate >= weekStart
+                    && act.startDate < weekEnd
+            }
+            self.thisWeekActivities = thisWeekRuns.count
+            thisWeekDistance = thisWeekRuns.reduce(0) { $0 + $1.distance }
+            thisWeekTime = thisWeekRuns.reduce(0) { $0 + $1.movingTime }
+            #if DEBUG
+            let df = ISO8601DateFormatter()
+            df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            print("[SportBoard] Esta semana: startOfWeek=\(df.string(from: weekStart)) startOfNextWeek=\(df.string(from: weekEnd)) runs=\(thisWeekRuns.count) fechas=\(thisWeekRuns.map { df.string(from: $0.startDate) })")
+            #endif
             
             // Stats este mes
             let monthStart = Date().startOfMonth
@@ -92,6 +114,81 @@ final class DashboardViewModel {
             
         } catch {
             print("Error loading stats: \(error)")
+        }
+        
+        loadIntelligence()
+    }
+    
+    /// Carga perfil, consistencia, fatiga, narrativa, sugerencia y alertas (solo datos locales).
+    private func loadIntelligence() {
+        guard let context = modelContext else { return }
+        
+        do {
+            if try RunnerProfileService.shouldRecompute(modelContext: context) {
+                try RunnerProfileService.computeAndSave(modelContext: context)
+            }
+            profile = try RunnerProfileService.fetchProfile(modelContext: context)
+        } catch {
+            profile = nil
+        }
+        
+        do {
+            consistencyBreakdown = try ConsistencyService.compute(modelContext: context, profile: profile)
+        } catch {
+            consistencyBreakdown = nil
+        }
+        
+        do {
+            fatigueDiagnosis = try FatigueService.compute(modelContext: context, profile: profile)
+        } catch {
+            fatigueDiagnosis = nil
+        }
+        
+        do {
+            efficiencyTrend = try EfficiencyTrendService.compute(modelContext: context, profile: profile, fatigue: fatigueDiagnosis)
+        } catch {
+            efficiencyTrend = nil
+        }
+        
+        do {
+            weeklyNarrative = try WeeklyNarrativeService.generate(
+                modelContext: context,
+                profile: profile,
+                consistency: consistencyBreakdown,
+                fatigue: fatigueDiagnosis,
+                efficiencyTrend: efficiencyTrend?.direction
+            )
+        } catch {
+            weeklyNarrative = ""
+        }
+        
+        do {
+            nextWorkoutSuggestion = try NextWorkoutSuggestionService.suggest(
+                modelContext: context,
+                profile: profile,
+                fatigue: fatigueDiagnosis,
+                consistency: consistencyBreakdown
+            )
+        } catch {
+            nextWorkoutSuggestion = nil
+        }
+        
+        do {
+            silentAlerts = try SilentAlertsService.evaluate(
+                modelContext: context,
+                profile: profile,
+                efficiencyTrend: efficiencyTrend,
+                consistency: consistencyBreakdown,
+                fatigue: fatigueDiagnosis
+            )
+        } catch {
+            silentAlerts = []
+        }
+        
+        do {
+            suspiciousPeak = try SuspiciousPeakDetector.evaluate(modelContext: context, profile: profile)
+        } catch {
+            suspiciousPeak = nil
         }
     }
     

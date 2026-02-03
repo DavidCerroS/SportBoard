@@ -8,23 +8,57 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Date Extensions
+// MARK: - Calendar (Europe/Madrid, Lunes como primer día)
+
+private var _madridCalendar: Calendar = {
+    var cal = Calendar(identifier: .gregorian)
+    cal.timeZone = TimeZone(identifier: "Europe/Madrid")!
+    cal.locale = Locale(identifier: "es_ES")
+    cal.firstWeekday = 2 // Lunes
+    return cal
+}()
+
+extension Calendar {
+    /// Calendario para agrupar por semana en España: Europe/Madrid, es_ES, firstWeekday = 2 (Lunes).
+    static var sportBoardMadrid: Calendar { _madridCalendar }
+}
 
 extension Date {
+    func startOfWeek(using calendar: Calendar) -> Date {
+        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
+        return calendar.date(from: components) ?? self
+    }
+    
+    func startOfNextWeek(using calendar: Calendar) -> Date {
+        let start = startOfWeek(using: calendar)
+        return calendar.date(byAdding: .day, value: 7, to: start) ?? start
+    }
+    
+    func startOfMonth(using calendar: Calendar) -> Date {
+        let components = calendar.dateComponents([.year, .month], from: self)
+        return calendar.date(from: components) ?? self
+    }
+    
     var startOfDay: Date {
         Calendar.current.startOfDay(for: self)
     }
     
     var startOfWeek: Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
-        return calendar.date(from: components) ?? self
+        startOfWeek(using: Calendar.current)
+    }
+    
+    /// Inicio de la semana (Lunes 00:00) en Europe/Madrid. Usar para "esta semana" y consistencia.
+    var startOfWeekMadrid: Date {
+        startOfWeek(using: Calendar.sportBoardMadrid)
+    }
+    
+    /// Inicio de la semana siguiente en Europe/Madrid. Rango de esta semana: [startOfWeekMadrid, startOfNextWeekMadrid).
+    var startOfNextWeekMadrid: Date {
+        startOfNextWeek(using: Calendar.sportBoardMadrid)
     }
     
     var startOfMonth: Date {
-        let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month], from: self)
-        return calendar.date(from: components) ?? self
+        startOfMonth(using: Calendar.current)
     }
     
     var year: Int {

@@ -1,0 +1,30 @@
+{
+  "activity": {
+    "id": 1003,
+    "name": "Easy Run",
+    "sportType": "Run",
+    "startDate": "2024-02-12T07:00:00Z",
+    "distance": 8000,
+    "movingTime": 2700,
+    "elapsedTime": 2750,
+    "totalElevationGain": 60,
+    "averageSpeed": 2.96,
+    "maxSpeed": 3.5,
+    "averageHeartrate": 145,
+    "maxHeartrate": 165,
+    "hasHeartrate": true,
+    "hasSplitsMetric": true,
+    "hasLaps": false
+  },
+  "splits": [
+    { "splitIndex": 0, "distance": 1000, "movingTime": 340, "elapsedTime": 340, "averageSpeed": 2.94, "averageHeartrate": 142, "elevationDifference": 3, "paceZone": 2 },
+    { "splitIndex": 1, "distance": 1000, "movingTime": 335, "elapsedTime": 335, "averageSpeed": 2.98, "averageHeartrate": 144, "elevationDifference": 2, "paceZone": 2 },
+    { "splitIndex": 2, "distance": 1000, "movingTime": 330, "elapsedTime": 330, "averageSpeed": 3.03, "averageHeartrate": 146, "elevationDifference": -1, "paceZone": 2 },
+    { "splitIndex": 3, "distance": 1000, "movingTime": 340, "elapsedTime": 340, "averageSpeed": 2.94, "averageHeartrate": 145, "elevationDifference": 1, "paceZone": 2 },
+    { "splitIndex": 4, "distance": 1000, "movingTime": 335, "elapsedTime": 335, "averageSpeed": 2.98, "averageHeartrate": 147, "elevationDifference": 0, "paceZone": 2 },
+    { "splitIndex": 5, "distance": 1000, "movingTime": 330, "elapsedTime": 330, "averageSpeed": 3.03, "averageHeartrate": 148, "elevationDifference": -2, "paceZone": 2 },
+    { "splitIndex": 6, "distance": 1000, "movingTime": 345, "elapsedTime": 345, "averageSpeed": 2.9, "averageHeartrate": 143, "elevationDifference": 4, "paceZone": 2 },
+    { "splitIndex": 7, "distance": 1000, "movingTime": 345, "elapsedTime": 345, "averageSpeed": 2.9, "averageHeartrate": 144, "elevationDifference": 3, "paceZone": 2 }
+  ],
+  "laps": null
+}

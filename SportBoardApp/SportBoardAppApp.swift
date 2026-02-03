@@ -16,7 +16,9 @@ struct SportBoardAppApp: App {
             ActivityLap.self,
             ActivitySplit.self,
             SyncState.self,
-            Athlete.self
+            Athlete.self,
+            RunnerProfile.self,
+            PostActivityReflection.self
         ])
         
         let modelConfiguration = ModelConfiguration(

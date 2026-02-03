@@ -48,7 +48,11 @@ struct MainTabView: View {
                 )
             }
             
-            Tab("Actividades", systemImage: "figure.run", value: 1) {
+            Tab("Inteligencia", systemImage: "brain.head.profile", value: 1) {
+                IntelligenceView(viewModel: dashboardViewModel)
+            }
+            
+            Tab("Actividades", systemImage: "figure.run", value: 2) {
                 ActivityListView(viewModel: activitiesViewModel)
             }
         }

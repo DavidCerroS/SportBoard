@@ -1,0 +1,26 @@
+{
+  "activity": {
+    "id": 1006,
+    "name": "Weird Splits Run",
+    "sportType": "Run",
+    "startDate": "2024-02-22T06:30:00Z",
+    "distance": 5200,
+    "movingTime": 1800,
+    "elapsedTime": 1820,
+    "totalElevationGain": 40,
+    "averageSpeed": 2.89,
+    "maxSpeed": 3.4,
+    "averageHeartrate": 148,
+    "maxHeartrate": 168,
+    "hasHeartrate": true,
+    "hasSplitsMetric": true,
+    "hasLaps": false
+  },
+  "splits": [
+    { "splitIndex": 0, "distance": 950, "movingTime": 330, "elapsedTime": 330, "averageSpeed": 2.88, "averageHeartrate": 146, "elevationDifference": 1, "paceZone": 2 },
+    { "splitIndex": 1, "distance": 1050, "movingTime": 360, "elapsedTime": 360, "averageSpeed": 2.92, "averageHeartrate": 149, "elevationDifference": -2, "paceZone": 2 },
+    { "splitIndex": 2, "distance": 1200, "movingTime": 410, "elapsedTime": 410, "averageSpeed": 2.93, "averageHeartrate": 150, "elevationDifference": 0, "paceZone": 2 },
+    { "splitIndex": 3, "distance": 1000, "movingTime": 345, "elapsedTime": 345, "averageSpeed": 2.9, "averageHeartrate": 147, "elevationDifference": 2, "paceZone": 2 }
+  ],
+  "laps": null
+}

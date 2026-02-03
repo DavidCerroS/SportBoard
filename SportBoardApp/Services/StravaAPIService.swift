@@ -59,7 +59,7 @@ struct StravaActivitySummary: Codable {
     }
 }
 
-struct StravaActivityDetail: Codable {
+struct StravaActivityDetail: Codable, Sendable {
     let id: Int64
     let name: String
     let sportType: String
@@ -82,7 +82,33 @@ struct StravaActivityDetail: Codable {
     let deviceName: String?
     let laps: [StravaLap]?
     let splitsMetric: [StravaSplit]?
-    
+
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int64.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        sportType = try c.decode(String.self, forKey: .sportType)
+        startDate = try c.decode(String.self, forKey: .startDate)
+        startDateLocal = try c.decode(String.self, forKey: .startDateLocal)
+        distance = try c.decode(Double.self, forKey: .distance)
+        movingTime = try c.decode(Int.self, forKey: .movingTime)
+        elapsedTime = try c.decode(Int.self, forKey: .elapsedTime)
+        totalElevationGain = try c.decode(Double.self, forKey: .totalElevationGain)
+        averageSpeed = try c.decode(Double.self, forKey: .averageSpeed)
+        maxSpeed = try c.decode(Double.self, forKey: .maxSpeed)
+        averageHeartrate = try c.decodeIfPresent(Double.self, forKey: .averageHeartrate)
+        maxHeartrate = try c.decodeIfPresent(Double.self, forKey: .maxHeartrate)
+        averageWatts = try c.decodeIfPresent(Double.self, forKey: .averageWatts)
+        maxWatts = try c.decodeIfPresent(Double.self, forKey: .maxWatts)
+        kilojoules = try c.decodeIfPresent(Double.self, forKey: .kilojoules)
+        hasHeartrate = try c.decodeIfPresent(Bool.self, forKey: .hasHeartrate)
+        deviceWatts = try c.decodeIfPresent(Bool.self, forKey: .deviceWatts)
+        description = try c.decodeIfPresent(String.self, forKey: .description)
+        deviceName = try c.decodeIfPresent(String.self, forKey: .deviceName)
+        laps = try c.decodeIfPresent([StravaLap].self, forKey: .laps)
+        splitsMetric = try c.decodeIfPresent([StravaSplit].self, forKey: .splitsMetric)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, name, distance, kilojoules, description
         case sportType = "sport_type"
@@ -240,12 +266,17 @@ struct AthleteResponse: Codable {
     }
 }
 
+// MARK: - Strava API (namespace no aislado)
+
+enum StravaAPI {
+    static let baseURL = "https://www.strava.com/api/v3"
+}
 // MARK: - Strava API Service
 
 actor StravaAPIService {
     static let shared = StravaAPIService()
     
-    private let baseURL = Constants.Strava.apiBaseURL
+    private let baseURL = StravaAPI.baseURL
     private var rateLimitInfo: RateLimitInfo?
     
     private init() {}
