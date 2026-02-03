@@ -171,12 +171,9 @@ final class WebJSONExporterTests: XCTestCase {
     }
     
     private func loadGoldenFile(named name: String) throws -> String {
-        let bundle = Bundle(for: type(of: self))
-        guard let url = bundle.url(forResource: name, withExtension: "json", subdirectory: "GoldenFiles") else {
-            // Intentar cargar desde el path del proyecto
-            let projectPath = "/Users/daviddelcerrosanchez/Documents/Proyectos/SportBoardApp/SportBoardAppTests/GoldenFiles/\(name).json"
-            return try String(contentsOfFile: projectPath, encoding: .utf8)
-        }
+        let baseURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+        let url = baseURL.appendingPathComponent("GoldenFiles/\(name).json")
         return try String(contentsOf: url, encoding: .utf8)
     }
     

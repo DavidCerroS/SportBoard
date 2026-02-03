@@ -29,7 +29,10 @@ struct RunnerProfileService {
     static let recomputeIntervalDays = 7
     
     /// Calcula el perfil y lo guarda en el contexto. Usar desde MainActor o pasar context.
-    static func computeAndSave(modelContext: ModelContext) throws {
+    static func computeAndSave(
+        modelContext: ModelContext,
+        dateProvider: DateProviding = SystemDateProvider()
+    ) throws {
         var descriptor = FetchDescriptor<Activity>(
             sortBy: [SortDescriptor(\.startDate, order: .reverse)]
         )
@@ -42,7 +45,10 @@ struct RunnerProfileService {
             return
         }
         
-        let (easyPaceMs, threshMs, weeklyVar, easyHardRatio, confidence) = computeFromActivities(activities)
+        let (easyPaceMs, threshMs, weeklyVar, easyHardRatio, confidence) = computeFromActivities(
+            activities,
+            calendar: dateProvider.calendar
+        )
         
         try deleteExistingProfile(modelContext: modelContext)
         
@@ -52,7 +58,7 @@ struct RunnerProfileService {
             weeklyVariability: weeklyVar,
             easyHardRatio: easyHardRatio,
             confidence: confidence,
-            lastComputedAt: Date(),
+            lastComputedAt: dateProvider.now,
             sportType: Self.runSportType
         )
         modelContext.insert(profile)
@@ -66,9 +72,12 @@ struct RunnerProfileService {
     }
     
     /// Indica si conviene recalcular (han pasado X días o no hay perfil)
-    static func shouldRecompute(modelContext: ModelContext) throws -> Bool {
+    static func shouldRecompute(
+        modelContext: ModelContext,
+        dateProvider: DateProviding = SystemDateProvider()
+    ) throws -> Bool {
         guard let profile = try fetchProfile(modelContext: modelContext) else { return true }
-        let days = Calendar.current.dateComponents([.day], from: profile.lastComputedAt, to: Date()).day ?? 0
+        let days = dateProvider.calendar.dateComponents([.day], from: profile.lastComputedAt, to: dateProvider.now).day ?? 0
         return days >= recomputeIntervalDays
     }
     
@@ -80,7 +89,10 @@ struct RunnerProfileService {
         try modelContext.save()
     }
     
-    private static func computeFromActivities(_ activities: [Activity]) -> (easyPaceMs: Double, thresholdPaceMs: Double, weeklyVariability: Double, easyHardRatio: Double, confidence: Double) {
+    static func computeFromActivities(
+        _ activities: [Activity],
+        calendar: Calendar = Calendar.current
+    ) -> (easyPaceMs: Double, thresholdPaceMs: Double, weeklyVariability: Double, easyHardRatio: Double, confidence: Double) {
         let runs = activities.filter { $0.sportType == Self.runSportType && $0.movingTime >= 10 * 60 && $0.averageSpeed > 0 }
         
         // Ritmo fácil: mediana de ritmos de rodajes "estables" (duración 25–90 min, ritmo no extremo)
@@ -103,7 +115,7 @@ struct RunnerProfileService {
         let thresholdPaceMs = bestPaceMs > 0 ? bestPaceMs : easyPaceMs * 0.85
         
         // Variabilidad semanal: CV de volumen (km) por semana
-        let byWeek = Dictionary(grouping: runs) { $0.startDate.startOfWeek }
+        let byWeek = Dictionary(grouping: runs) { $0.startDate.startOfWeek(using: calendar) }
         let weeklyKm = byWeek.mapValues { $0.reduce(0.0) { $0 + $1.distance / 1000 } }
         let volumes = Array(weeklyKm.values)
         let weeklyVariability = coefficientOfVariation(volumes)

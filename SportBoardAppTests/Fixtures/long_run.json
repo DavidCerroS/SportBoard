@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1004,
+    "name": "Long Run",
+    "sportType": "Run",
+    "startDate": "2024-02-18T08:00:00Z",
+    "distance": 22000,
+    "movingTime": 7200,
+    "elapsedTime": 7300,
+    "totalElevationGain": 210,
+    "averageSpeed": 3.05,
+    "maxSpeed": 3.6,
+    "averageHeartrate": 150,
+    "maxHeartrate": 170,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

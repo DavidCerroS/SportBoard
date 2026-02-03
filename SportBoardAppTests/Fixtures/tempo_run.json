@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1010,
+    "name": "Tempo Run",
+    "sportType": "Run",
+    "startDate": "2024-02-28T07:00:00Z",
+    "distance": 10000,
+    "movingTime": 2400,
+    "elapsedTime": 2420,
+    "totalElevationGain": 50,
+    "averageSpeed": 4.16,
+    "maxSpeed": 4.8,
+    "averageHeartrate": 165,
+    "maxHeartrate": 182,
+    "hasHeartrate": true,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}

@@ -1,0 +1,21 @@
+{
+  "activity": {
+    "id": 1002,
+    "name": "Short Run No HR",
+    "sportType": "Run",
+    "startDate": "2024-02-05T07:30:00Z",
+    "distance": 1200,
+    "movingTime": 480,
+    "elapsedTime": 500,
+    "totalElevationGain": 12,
+    "averageSpeed": 2.5,
+    "maxSpeed": 3.1,
+    "averageHeartrate": null,
+    "maxHeartrate": null,
+    "hasHeartrate": false,
+    "hasSplitsMetric": false,
+    "hasLaps": false
+  },
+  "splits": null,
+  "laps": null
+}
