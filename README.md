@@ -8,82 +8,60 @@
   <img src="https://img.shields.io/badge/Status-Active%20Development-brightgreen" alt="Active Development" />
 </p>
 
-SportBoard es una app iOS para **sincronizar, analizar y entender entrenamientos de Strava** (especialmente running), con foco en métricas accionables, consistencia y señales de fatiga para mejorar el rendimiento.
+SportBoard es una app iOS para **sincronizar, analizar y entender entrenamientos de Strava** (especialmente running), con foco en métricas accionables, constancia y prevención de fatiga.
 
 ---
 
-## ✨ Qué ofrece SportBoard
+## ✨ Valor principal
 
-- **Sincronización con Strava** (OAuth + gestión segura de tokens).
-- **Dashboard de rendimiento** con métricas clave de entrenamiento.
-- **Capa de inteligencia local** para detectar patrones y anomalías.
-- **Detalle avanzado de actividades** (splits, laps, reflexión post-run).
-- **Exportación de datos** para uso web/análisis externo.
-- **Suite de tests** con fixtures y golden files.
+- Convierte datos de Strava en señales prácticas para decidir mejor tus entrenos.
+- Añade una capa de análisis local para detectar patrones de rendimiento.
+- Mantiene experiencia rápida y clara con arquitectura iOS moderna.
 
 ---
 
-## 👥 Público objetivo
-
-SportBoard está pensado para:
-
-- Runners que quieren una lectura más útil de su historial.
-- Deportistas que buscan constancia y control de carga/fatiga.
-- Usuarios de Strava que quieren una “segunda capa” de análisis.
-
----
-
-## 🚀 Features principales
+## 🚀 Funcionalidades
 
 ### 🔐 Autenticación y seguridad
-- Login OAuth con Strava (`ASWebAuthenticationSession`).
-- Almacenamiento de credenciales en Keychain.
+- OAuth con Strava (`ASWebAuthenticationSession`)
+- Gestión de credenciales en Keychain
 
 ### 🔄 Sincronización
-- Sincronización incremental + histórica.
-- Control de rate limits de Strava API.
-- Flujo robusto de reintentos/estado de sync.
+- Sync incremental + histórico
+- Gestión de límites de API
+- Estado de sincronización robusto
 
-### 📊 Dashboard y métricas
-- Distancia, tiempo, elevación y métricas cardiovasculares.
-- Vista consolidada por periodos recientes.
+### 📊 Analítica
+- Dashboard con métricas de distancia, tiempo, elevación y HR
+- Comparativas y lectura de tendencias
 
-### 🧠 Inteligencia deportiva local
-- Clasificación de entrenos.
-- Detección de “bad runs” y picos sospechosos.
-- Consistencia semanal y comparativas.
-- Señales de fatiga.
-- Sugerencias de próximo entrenamiento.
-- Narrativa semanal automática.
+### 🧠 Inteligencia local
+- Clasificación de entrenos
+- Detección de anomalías y picos sospechosos
+- Señales de fatiga y consistencia
+- Sugerencias de próximo entrenamiento
+- Narrativa semanal automática
 
 ### 🧩 Detalle por actividad
-- Splits y laps.
-- Reflexión post actividad.
-- Exportación JSON para integración web.
+- Splits, laps y reflexión post actividad
+- Exportación JSON para integraciones web
 
 ---
 
 ## 🧱 Stack técnico
 
-- **Swift 5**
-- **SwiftUI**
-- **SwiftData**
-- **Foundation / Combine**
-- **AuthenticationServices**
-- **Keychain**
-- Proyecto Xcode: `.xcodeproj` (sin workspace)
+- Swift 5
+- SwiftUI
+- SwiftData
+- Foundation / Combine
+- AuthenticationServices
+- Keychain
+
+Patrón principal: **MVVM + Services + SwiftData**
 
 ---
 
-## 🏛️ Arquitectura (resumen)
-
-Enfoque: **MVVM + Services + SwiftData**
-
-Flujo principal:
-
-`Strava API → SyncService → Persistencia (SwiftData) → ViewModels → Views`
-
-Estructura relevante del proyecto:
+## 📁 Estructura
 
 ```text
 SportBoardApp/
@@ -112,54 +90,26 @@ SportBoardAppTests/
 ## ⚙️ Instalación
 
 ### Requisitos
+- macOS + Xcode
+- Simulador iOS
+- App de Strava registrada (OAuth)
 
-- macOS + Xcode actualizado.
-- Simulador iOS.
-- App de Strava registrada (OAuth).
-
-### 1) Clonar repo
-
+### Setup
 ```bash
 git clone https://github.com/DavidCerroS/SportBoard.git
 cd SportBoard
 ```
 
-### 2) Configurar credenciales
-
-Usa `SportBoardApp/Utilities/Constants.example.swift` como base y crea/ajusta `Constants.swift` con:
-
-- `clientId`
-- `clientSecret`
-- `redirectUri`
+1. Usa `SportBoardApp/Utilities/Constants.example.swift` como base
+2. Crea/ajusta `Constants.swift` con `clientId`, `clientSecret`, `redirectUri`
+3. Abre `SportBoardApp.xcodeproj`
+4. Ejecuta esquema `SportBoardApp`
 
 > No subas secretos reales al repositorio.
-
-### 3) Abrir en Xcode
-
-Abre:
-
-`SportBoardApp.xcodeproj`
-
-### 4) Ejecutar
-
-Selecciona esquema `SportBoardApp` y ejecuta en simulador o dispositivo.
-
----
-
-## ▶️ Uso rápido
-
-1. Inicia sesión con Strava.
-2. Lanza sincronización inicial.
-3. Explora:
-   - Dashboard (métricas globales)
-   - Intelligence (insights y sugerencias)
-   - Activities (detalle, splits/laps, export)
 
 ---
 
 ## 🧪 Testing
-
-Ejemplo de ejecución:
 
 ```bash
 xcodebuild test \
@@ -168,32 +118,16 @@ xcodebuild test \
   -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
 ```
 
-Consulta también: `TESTING.md`.
-
----
-
-## 🛣️ Roadmap sugerido
-
-- [ ] CI con GitHub Actions (build + tests).
-- [ ] Capturas reales y sección visual del producto.
-- [ ] Métricas por bloques/mesociclos.
-- [ ] Exportes extra (CSV/PDF).
-- [ ] Mejoras en internacionalización.
-- [ ] Mejor documentación de arquitectura interna.
+Más contexto en `TESTING.md`.
 
 ---
 
 ## 🤝 Contribución
 
-PRs bienvenidas. Recomendado:
-
-1. Crear rama (`feature/...`, `fix/...`).
-2. Hacer commits pequeños y claros.
-3. Abrir PR con contexto, alcance y validación.
-4. Para cambios grandes: abrir issue antes.
+Revisa `CONTRIBUTING.md` para flujo de ramas, criterios de calidad y etiquetas recomendadas.
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para más detalles.
+Este proyecto está bajo licencia **MIT**. Revisa [`LICENSE`](./LICENSE).
