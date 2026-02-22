@@ -1,0 +1,27 @@
+changelog:
+  categories:
+    - title: 🚀 Features
+      labels:
+        - enhancement
+        - feat
+    - title: 🐛 Fixes
+      labels:
+        - bug
+        - fix
+    - title: 🧪 Tests & Quality
+      labels:
+        - test
+        - ci
+    - title: 📝 Documentation
+      labels:
+        - documentation
+        - docs
+    - title: 🧹 Maintenance
+      labels:
+        - chore
+        - tech-debt
+  exclude:
+    labels:
+      - duplicate
+      - invalid
+      - wontfix
