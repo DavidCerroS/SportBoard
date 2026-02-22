@@ -196,5 +196,4 @@ PRs bienvenidas. Recomendado:
 
 ## 📄 Licencia
 
-No se detecta `LICENSE` en el repo actualmente.  
-Recomendado añadir una licencia explícita (por ejemplo MIT) para clarificar uso y contribución.
+Este proyecto está bajo licencia **MIT**. Consulta el archivo [`LICENSE`](./LICENSE) para más detalles.
