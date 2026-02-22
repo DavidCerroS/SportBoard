@@ -1,21 +1,16 @@
 ## 📌 Qué cambia
-Resumen breve de los cambios.
 
 ## 🎯 Por qué
-Contexto/problema que resuelve.
 
 ## 🧪 Validación
-- [ ] Tests pasan
+- [ ] Tests pasan (o justificación)
 - [ ] Probado manualmente
-- [ ] Sin cambios colaterales detectados
 
 ## ⚠️ Riesgos
-Posibles riesgos + mitigación.
 
 ## 🔁 Rollback
-Cómo revertir rápidamente si algo falla.
 
 ## ✅ Checklist
+- [ ] Sin secretos/credenciales
 - [ ] Cambios acotados al objetivo
-- [ ] Documentación actualizada (si aplica)
-- [ ] No incluye credenciales/secrets
+- [ ] Docs actualizadas (si aplica)

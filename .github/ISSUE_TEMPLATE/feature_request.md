@@ -7,17 +7,11 @@ assignees: []
 ---
 
 ## Problema / contexto
-¿Qué necesidad quieres cubrir?
 
 ## Propuesta
-Describe la solución propuesta.
 
-## Alternativas consideradas
-¿Qué otras opciones hay?
+## Alternativas
 
 ## Criterios de aceptación
 - [ ]
 - [ ]
-
-## Impacto esperado
-Usuario, producto y mantenimiento.

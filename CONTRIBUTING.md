@@ -1,23 +1,22 @@
-# Contributing to SportBoard
+# Contributing
 
-Thanks for contributing 👋
+Gracias por contribuir 👋
 
-## Workflow
+## Flujo recomendado
 
-1. Create a branch (`feature/...`, `fix/...`, `chore/...`).
-2. Keep PRs focused and small.
-3. Include context, risk and rollback notes in the PR template.
-4. Run tests before opening PR.
+1. Crea una rama (`feature/...`, `fix/...`, `chore/...`).
+2. Mantén los cambios enfocados y pequeños.
+3. Abre PR con contexto, validación y riesgos.
+4. Evita mezclar refactor + feature en el mismo PR.
 
-## Labels and priority
+## Calidad mínima
 
-- Type: `bug`, `enhancement`, `documentation`, `tech-debt`, `test`, `ci`
-- Priority: `priority:P0`, `priority:P1`, `priority:P2`, `priority:P3`
-- Status: `status:needs-info`, `status:ready`, `status:in-progress`
+- Ejecutar tests/lint cuando aplique
+- No subir secretos
+- Documentar cambios de comportamiento
 
-## Definition of done
+## Etiquetas sugeridas
 
-- [ ] Scope aligned with issue/PR description
-- [ ] Tests pass or test impact documented
-- [ ] Docs updated if behavior changed
-- [ ] No secrets committed
+- Tipo: `bug`, `enhancement`, `documentation`, `tech-debt`, `test`, `ci`
+- Prioridad: `priority:P0`, `priority:P1`, `priority:P2`, `priority:P3`
+- Estado: `status:needs-info`, `status:ready`, `status:in-progress`

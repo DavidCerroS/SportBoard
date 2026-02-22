@@ -1,11 +1,2 @@
-# Default owners
+# Default owner
 * @DavidCerroS
-
-# Core app
-/SportBoardApp/ @DavidCerroS
-
-# Tests
-/SportBoardAppTests/ @DavidCerroS
-
-# CI/config
-/.github/ @DavidCerroS
