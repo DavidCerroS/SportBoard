@@ -16,6 +16,12 @@ jobs:
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
+      - name: Prepare CI constants
+        run: |
+          if [ ! -f SportBoardApp/Utilities/Constants.swift ] && [ -f SportBoardApp/Utilities/Constants.example.swift ]; then
+            cp SportBoardApp/Utilities/Constants.example.swift SportBoardApp/Utilities/Constants.swift
+          fi
+
       - name: Build and test
         run: |
           set -euo pipefail
