@@ -8,16 +8,22 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
-      - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+      - name: Select Xcode (latest stable)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
       - name: Build and test
         run: |
+          set -euo pipefail
+          PROJECT=$(find . -maxdepth 1 -name '*.xcodeproj' | head -n1)
+          SCHEME=$(xcodebuild -project "$PROJECT" -list -json | ruby -rjson -e 'j=JSON.parse(STDIN.read); puts j["project"]["schemes"].first')
+
           xcodebuild test \
-            -project *.xcodeproj \
-            -scheme $(xcodebuild -list -json | ruby -rjson -e 'j=JSON.parse(STDIN.read); puts j["project"]["schemes"].first') \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             CODE_SIGNING_ALLOWED=NO
