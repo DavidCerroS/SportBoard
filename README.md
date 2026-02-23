@@ -100,12 +100,18 @@ git clone https://github.com/DavidCerroS/SportBoard.git
 cd SportBoard
 ```
 
-1. Usa `SportBoardApp/Utilities/Constants.example.swift` como base
-2. Crea/ajusta `Constants.swift` con `clientId`, `clientSecret`, `redirectUri`
+1. Genera `Constants.swift` desde la plantilla:
+   ```bash
+   ./scripts/generate_constants.sh
+   ```
+2. (Opcional) Inyecta credenciales por variables de entorno:
+   ```bash
+   STRAVA_CLIENT_ID=xxx STRAVA_CLIENT_SECRET=yyy STRAVA_REDIRECT_URI=zzz ./scripts/generate_constants.sh
+   ```
 3. Abre `SportBoardApp.xcodeproj`
 4. Ejecuta esquema `SportBoardApp`
 
-> No subas secretos reales al repositorio.
+> `SportBoardApp/Utilities/Constants.swift` está en `.gitignore` para no subir secretos reales.
 
 ---
 

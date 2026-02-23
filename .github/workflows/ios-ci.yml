@@ -17,10 +17,12 @@ jobs:
         with:
           xcode-version: latest-stable
       - name: Prepare CI constants
-        run: |
-          if [ ! -f SportBoardApp/Utilities/Constants.swift ] && [ -f SportBoardApp/Utilities/Constants.example.swift ]; then
-            cp SportBoardApp/Utilities/Constants.example.swift SportBoardApp/Utilities/Constants.swift
-          fi
+        env:
+          FORCE: "1"
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REDIRECT_URI: ${{ secrets.STRAVA_REDIRECT_URI }}
+        run: ./scripts/generate_constants.sh
 
       - name: Build and test
         run: |
