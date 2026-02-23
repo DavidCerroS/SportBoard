@@ -27,13 +27,8 @@ jobs:
           set -euo pipefail
           PROJECT=$(find . -maxdepth 1 -name '*.xcodeproj' | head -n1)
           SCHEME=$(xcodebuild -project "$PROJECT" -list -json | ruby -rjson -e 'j=JSON.parse(STDIN.read); puts j["project"]["schemes"].first')
-          DESTINATION=$(xcodebuild -showdestinations -project "$PROJECT" -scheme "$SCHEME" 2>/dev/null | \
-            sed -nE 's/.*platform:iOS Simulator, id:([^,}]+).*/id=\1/p' | head -n1)
-
-          test -n "$DESTINATION"
-
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project "$PROJECT" \
             -scheme "$SCHEME" \
-            -destination "$DESTINATION" \
+            -sdk iphonesimulator \
             CODE_SIGNING_ALLOWED=NO
