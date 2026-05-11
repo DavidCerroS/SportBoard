@@ -20,7 +20,8 @@ struct WebJSONExporter {
         
         // Orden EXACTO top-level (web):
         // nombre, tipo, fecha, distancia_km, tiempo_total, tiempo_total_s,
-        // ritmo_medio, desnivel_positivo_m, fc_media, fc_max, tipo_parciales, parciales
+        // ritmo_medio, desnivel_positivo_m, fc_media, fc_max,
+        // potencia_media, potencia_max, tipo_parciales, parciales
         
         // Usamos startDateLocal si existe, sino fallback a startDate
         let dateForExport = activity.startDateLocal ?? activity.startDate
@@ -31,6 +32,9 @@ struct WebJSONExporter {
         let desnivelPositivo = Int(activity.totalElevationGain.rounded())
         let fcMedia = formatOptionalInt(activity.averageHeartrate)
         let fcMax = formatOptionalInt(activity.maxHeartrate)
+        let isRun = isRunSportType(activity.sportType)
+        let potenciaMedia = isRun ? formatOptionalInt(activity.averageWatts) : "null"
+        let potenciaMax = isRun ? formatOptionalInt(activity.maxWatts) : "null"
         
         // Determinar parciales
         let useLaps = (activity.sortedLaps?.count ?? 0) > 1
@@ -47,6 +51,8 @@ struct WebJSONExporter {
         lines.append("  \"desnivel_positivo_m\": \(desnivelPositivo),")
         lines.append("  \"fc_media\": \(fcMedia),")
         lines.append("  \"fc_max\": \(fcMax),")
+        lines.append("  \"potencia_media\": \(potenciaMedia),")
+        lines.append("  \"potencia_max\": \(potenciaMax),")
         lines.append("  \"tipo_parciales\": \(escapeString(tipoParciales)),")
         
         // Parciales
@@ -110,7 +116,7 @@ struct WebJSONExporter {
         // Orden EXACTO de cada parcial (web):
         // parcial, nombre, distancia_km, tiempo, tiempo_s, ritmo, ritmo_s_km,
         // desnivel_m, desnivel_positivo_m, desnivel_negativo_m,
-        // fc_media, fc_max, potencia_media, cadencia_media
+        // fc_media, fc_max, potencia_media, potencia_max, cadencia_media
         
         let distanciaKm = roundTo2Decimals(lap.distance / 1000)
         let tiempo = formatTime(lap.movingTime)
@@ -145,7 +151,8 @@ struct WebJSONExporter {
             "desnivel_negativo_m": desnivelNegativoM,
             "fc_media": lap.averageHeartrate != nil ? Int(lap.averageHeartrate!.rounded()) : NSNull(),
             "fc_max": NSNull(), // Strava no devuelve fc_max por parcial
-            "potencia_media": NSNull(), // Strava no devuelve potencia por parcial
+            "potencia_media": lap.averageWatts != nil ? Int(lap.averageWatts!.rounded()) : NSNull(),
+            "potencia_max": lap.maxWatts != nil ? Int(lap.maxWatts!.rounded()) : NSNull(),
             "cadencia_media": NSNull() // Strava no devuelve cadencia por parcial
         ]
     }
@@ -173,8 +180,10 @@ struct WebJSONExporter {
             "desnivel_m": desnivelM,
             "desnivel_positivo_m": desnivelPositivoM,
             "desnivel_negativo_m": desnivelNegativoM,
-            "fc_media": split.averageHeartrate != nil ? Int(split.averageHeartrate!.rounded()) : NSNull()
-            // NO incluir fc_max, potencia_media, cadencia_media (Strava no los devuelve)
+            "fc_media": split.averageHeartrate != nil ? Int(split.averageHeartrate!.rounded()) : NSNull(),
+            "potencia_media": split.averageWatts != nil ? Int(split.averageWatts!.rounded()) : NSNull(),
+            "potencia_max": split.maxWatts != nil ? Int(split.maxWatts!.rounded()) : NSNull()
+            // NO incluir fc_max ni cadencia_media (Strava no los devuelve)
         ]
     }
     
@@ -187,7 +196,7 @@ struct WebJSONExporter {
         ]
         
         // Campos opcionales que solo se incluyen si no son null
-        let optionalKeys = ["fc_max", "potencia_media", "cadencia_media"]
+        let optionalKeys = ["fc_max", "potencia_media", "potencia_max", "cadencia_media"]
         
         var lines: [String] = []
         lines.append("{")
@@ -307,6 +316,10 @@ struct WebJSONExporter {
     private static func formatOptionalInt(_ value: Double?) -> String {
         guard let v = value else { return "null" }
         return String(Int(v.rounded()))
+    }
+
+    private static func isRunSportType(_ sportType: String) -> Bool {
+        ["run", "trailrun", "virtualrun"].contains(sportType.lowercased())
     }
     
     /// Formatea cualquier valor para JSON

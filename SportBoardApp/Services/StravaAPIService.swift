@@ -193,8 +193,10 @@ struct StravaStreamSeries<T: Codable>: Codable {
 }
 
 struct StravaActivityStreamsResponse: Codable {
+    let time: StravaStreamSeries<Int>?
     let distance: StravaStreamSeries<Double>?
     let altitude: StravaStreamSeries<Double>?
+    let watts: StravaStreamSeries<Int>?
 }
 
 // MARK: - Rate Limit Info
@@ -325,10 +327,11 @@ actor StravaAPIService {
         return try await request(endpoint: "/activities/\(id)/laps")
     }
 
-    /// Obtiene streams de distancia y altitud para calcular desnivel +/-
-    func getActivityDistanceAndAltitudeStreams(id: Int64) async throws -> StravaActivityStreamsResponse {
+    /// Obtiene streams para calcular métricas por parcial.
+    func getActivityMetricStreams(id: Int64, includeWatts: Bool) async throws -> StravaActivityStreamsResponse {
+        let keys = includeWatts ? "time,distance,altitude,watts" : "distance,altitude"
         let queryItems = [
-            URLQueryItem(name: "keys", value: "distance,altitude"),
+            URLQueryItem(name: "keys", value: keys),
             URLQueryItem(name: "key_by_type", value: "true")
         ]
         return try await request(endpoint: "/activities/\(id)/streams", queryItems: queryItems)

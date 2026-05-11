@@ -188,12 +188,18 @@ final class SyncService: ObservableObject {
         let laps = activity.sortedLaps ?? []
         let splits = activity.sortedSplits ?? []
 
+        let needsPowerBackfill = isRunSportType(activity.sportType) && (
+            laps.contains { $0.averageWatts == nil || $0.maxWatts == nil } ||
+            splits.contains { $0.averageWatts == nil || $0.maxWatts == nil }
+        )
         let needsBackfill = laps.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil } ||
-            splits.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil }
+            splits.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil } ||
+            needsPowerBackfill
 
         guard needsBackfill else { return }
 
-        guard let breakdowns = await fetchElevationBreakdowns(
+        guard let breakdowns = await fetchMetricBreakdowns(
+            activity: activity,
             activityId: activity.id,
             lapSegments: laps.map {
                 LapElevationSegment(
@@ -209,13 +215,17 @@ final class SyncService: ObservableObject {
         }
 
         for (lap, breakdown) in zip(laps, breakdowns.laps) {
-            lap.positiveElevationGain = breakdown.positive
-            lap.negativeElevationLoss = breakdown.negative
+            lap.positiveElevationGain = breakdown.elevation.positive
+            lap.negativeElevationLoss = breakdown.elevation.negative
+            lap.averageWatts = breakdown.power?.average
+            lap.maxWatts = breakdown.power?.max
         }
 
         for (split, breakdown) in zip(splits, breakdowns.splits) {
-            split.positiveElevationGain = breakdown.positive
-            split.negativeElevationLoss = breakdown.negative
+            split.positiveElevationGain = breakdown.elevation.positive
+            split.negativeElevationLoss = breakdown.elevation.negative
+            split.averageWatts = breakdown.power?.average
+            split.maxWatts = breakdown.power?.max
         }
 
         try context.save()
@@ -769,7 +779,8 @@ final class SyncService: ObservableObject {
     private func applyActivityDetail(_ detail: StravaActivityDetail, to activity: Activity, context: ModelContext) async {
         let lapPayloads = (detail.laps?.count ?? 0) > 1 ? (detail.laps ?? []) : []
         let splitPayloads = detail.splitsMetric ?? []
-        let elevationBreakdowns = await fetchElevationBreakdowns(
+        let metricBreakdowns = await fetchMetricBreakdowns(
+            activity: activity,
             activityId: activity.id,
             lapSegments: lapPayloads.map {
                 LapElevationSegment(
@@ -786,7 +797,7 @@ final class SyncService: ObservableObject {
         activity.hasSplitsMetric = !splitPayloads.isEmpty
 
         for (index, lap) in lapPayloads.enumerated() {
-            let breakdown = elevationBreakdowns?.laps.indices.contains(index) == true ? elevationBreakdowns?.laps[index] : nil
+            let breakdown = metricBreakdowns?.laps.indices.contains(index) == true ? metricBreakdowns?.laps[index] : nil
             let activityLap = ActivityLap(
                 lapIndex: lap.lapIndex,
                 name: lap.name,
@@ -799,15 +810,17 @@ final class SyncService: ObservableObject {
                 maxSpeed: lap.maxSpeed,
                 averageHeartrate: lap.averageHeartrate,
                 totalElevationGain: lap.totalElevationGain ?? 0,
-                positiveElevationGain: breakdown?.positive,
-                negativeElevationLoss: breakdown?.negative,
+                positiveElevationGain: breakdown?.elevation.positive,
+                negativeElevationLoss: breakdown?.elevation.negative,
+                averageWatts: lap.averageWatts ?? breakdown?.power?.average,
+                maxWatts: breakdown?.power?.max,
                 activity: activity
             )
             context.insert(activityLap)
         }
 
         for (index, split) in splitPayloads.enumerated() {
-            let breakdown = elevationBreakdowns?.splits.indices.contains(index) == true ? elevationBreakdowns?.splits[index] : nil
+            let breakdown = metricBreakdowns?.splits.indices.contains(index) == true ? metricBreakdowns?.splits[index] : nil
             let activitySplit = ActivitySplit(
                 splitIndex: split.split - 1,
                 distance: split.distance,
@@ -816,8 +829,10 @@ final class SyncService: ObservableObject {
                 averageSpeed: split.averageSpeed,
                 averageHeartrate: split.averageHeartrate,
                 elevationDifference: split.elevationDifference,
-                positiveElevationGain: breakdown?.positive,
-                negativeElevationLoss: breakdown?.negative,
+                positiveElevationGain: breakdown?.elevation.positive,
+                negativeElevationLoss: breakdown?.elevation.negative,
+                averageWatts: split.averageWatts ?? breakdown?.power?.average,
+                maxWatts: breakdown?.power?.max,
                 paceZone: split.paceZone,
                 activity: activity
             )
@@ -825,15 +840,17 @@ final class SyncService: ObservableObject {
         }
     }
 
-    private func fetchElevationBreakdowns(
+    private func fetchMetricBreakdowns(
+        activity: Activity,
         activityId: Int64,
         lapSegments: [LapElevationSegment],
         splitDistances: [Double]
-    ) async -> (laps: [ElevationBreakdown], splits: [ElevationBreakdown])? {
+    ) async -> (laps: [MetricBreakdown], splits: [MetricBreakdown])? {
         guard !lapSegments.isEmpty || !splitDistances.isEmpty else { return nil }
 
         do {
-            let streams = try await api.getActivityDistanceAndAltitudeStreams(id: activityId)
+            let shouldFetchPower = isRunSportType(activity.sportType)
+            let streams = try await api.getActivityMetricStreams(id: activityId, includeWatts: shouldFetchPower)
             guard
                 let distanceStream = streams.distance?.data,
                 let altitudeStream = streams.altitude?.data
@@ -842,15 +859,20 @@ final class SyncService: ObservableObject {
                 print("Activity ID: \(activityId)")
                 print("distance stream: \(streams.distance?.data.count ?? 0) puntos")
                 print("altitude stream: \(streams.altitude?.data.count ?? 0) puntos")
-                print("Streams incompletos, no se puede calcular desnivel +/-")
+                print("Streams incompletos, no se puede calcular desnivel +/- ni potencia por parcial")
                 print("---------- END STRAVA STREAMS SUMMARY ----------\n")
                 return nil
             }
+
+            let timeStream = streams.time?.data
+            let wattsStream = shouldFetchPower ? streams.watts?.data : nil
 
             print("\n---------- STRAVA STREAMS SUMMARY ----------")
             print("Activity ID: \(activityId)")
             print("distance stream: \(distanceStream.count) puntos")
             print("altitude stream: \(altitudeStream.count) puntos")
+            print("time stream: \(timeStream?.count ?? 0) puntos")
+            print("watts stream: \(wattsStream?.count ?? 0) puntos")
             if let firstDistance = distanceStream.first, let lastDistance = distanceStream.last {
                 print("distance first/last: \(firstDistance)m -> \(lastDistance)m")
             }
@@ -868,12 +890,26 @@ final class SyncService: ObservableObject {
                     negative: breakdown.negative
                 )
             }
+            let lapPowerBreakdowns = wattsStream.flatMap {
+                PowerBreakdownCalculator.calculateIndexBreakdowns(
+                    indexRanges: lapSegments.map { ($0.startIndex, $0.endIndex) },
+                    timeStream: timeStream,
+                    wattsStream: $0
+                )
+            } ?? []
+            let lapBreakdownsWithPower = lapBreakdowns.enumerated().map { index, elevation in
+                MetricBreakdown(
+                    elevation: elevation,
+                    power: lapPowerBreakdowns.indices.contains(index) ? lapPowerBreakdowns[index] : nil
+                )
+            }
 
             if !lapSegments.isEmpty {
                 print("LAP BREAKDOWNS:")
                 for (index, segment) in lapSegments.enumerated() {
-                    let breakdown = lapBreakdowns.indices.contains(index) ? lapBreakdowns[index] : ElevationBreakdown(positive: 0, negative: 0)
-                    print("  Lap \(index + 1): distance=\(segment.distance)m, idx=\(segment.startIndex)->\(segment.endIndex), +\(Int(breakdown.positive.rounded()))m, -\(Int(breakdown.negative.rounded()))m")
+                    let breakdown = lapBreakdownsWithPower.indices.contains(index) ? lapBreakdownsWithPower[index] : MetricBreakdown(elevation: ElevationBreakdown(positive: 0, negative: 0), power: nil)
+                    let powerSummary = breakdown.power.map { ", \(Int($0.average.rounded()))W avg, \(Int($0.max.rounded()))W max" } ?? ""
+                    print("  Lap \(index + 1): distance=\(segment.distance)m, idx=\(segment.startIndex)->\(segment.endIndex), +\(Int(breakdown.elevation.positive.rounded()))m, -\(Int(breakdown.elevation.negative.rounded()))m\(powerSummary)")
                 }
             }
 
@@ -882,22 +918,46 @@ final class SyncService: ObservableObject {
                 distanceStream: distanceStream,
                 altitudeStream: altitudeStream
             ) ?? []
+            let splitPowerBreakdowns = wattsStream.flatMap {
+                PowerBreakdownCalculator.calculateSequentialBreakdowns(
+                    segmentDistances: splitDistances,
+                    distanceStream: distanceStream,
+                    timeStream: timeStream,
+                    wattsStream: $0
+                )
+            } ?? []
+            let splitBreakdownsWithPower = splitBreakdowns.enumerated().map { index, elevation in
+                MetricBreakdown(
+                    elevation: elevation,
+                    power: splitPowerBreakdowns.indices.contains(index) ? splitPowerBreakdowns[index] : nil
+                )
+            }
 
             if !splitDistances.isEmpty {
                 print("SPLIT BREAKDOWNS:")
                 for (index, distance) in splitDistances.enumerated() {
-                    let breakdown = splitBreakdowns.indices.contains(index) ? splitBreakdowns[index] : ElevationBreakdown(positive: 0, negative: 0)
-                    print("  Split \(index + 1): distance=\(distance)m, +\(Int(breakdown.positive.rounded()))m, -\(Int(breakdown.negative.rounded()))m")
+                    let breakdown = splitBreakdownsWithPower.indices.contains(index) ? splitBreakdownsWithPower[index] : MetricBreakdown(elevation: ElevationBreakdown(positive: 0, negative: 0), power: nil)
+                    let powerSummary = breakdown.power.map { ", \(Int($0.average.rounded()))W avg, \(Int($0.max.rounded()))W max" } ?? ""
+                    print("  Split \(index + 1): distance=\(distance)m, +\(Int(breakdown.elevation.positive.rounded()))m, -\(Int(breakdown.elevation.negative.rounded()))m\(powerSummary)")
                 }
             }
 
             print("---------- END STRAVA STREAMS SUMMARY ----------\n")
 
-            return (lapBreakdowns, splitBreakdowns)
+            return (lapBreakdownsWithPower, splitBreakdownsWithPower)
         } catch {
-            print("No se pudieron calcular desniveles +/- para actividad \(activityId): \(error)")
+            print("No se pudieron calcular métricas por parcial para actividad \(activityId): \(error)")
             return nil
         }
+    }
+
+    private func isRunSportType(_ sportType: String) -> Bool {
+        ["run", "trailrun", "virtualrun"].contains(sportType.lowercased())
+    }
+
+    private struct MetricBreakdown {
+        let elevation: ElevationBreakdown
+        let power: PowerBreakdown?
     }
 
     private struct LapElevationSegment {
@@ -923,7 +983,7 @@ final class SyncService: ObservableObject {
             for (i, lap) in laps.prefix(3).enumerated() {
                 print("  Lap \(i+1): \(lap.name ?? "unnamed")")
                 print("    fc_media=\(lap.averageHeartrate ?? -1)")
-                print("    (fc_max y potencia_media no disponibles - Strava no los devuelve)")
+                print("    potencia_media=\(lap.averageWatts ?? -1), potencia_max=\(lap.maxWatts ?? -1)")
             }
         }
         
@@ -932,7 +992,7 @@ final class SyncService: ObservableObject {
             for (i, split) in splits.prefix(3).enumerated() {
                 print("  Km \(i+1):")
                 print("    fc_media=\(split.averageHeartrate ?? -1)")
-                print("    (fc_max y potencia_media no disponibles - Strava no los devuelve)")
+                print("    potencia_media=\(split.averageWatts ?? -1), potencia_max=\(split.maxWatts ?? -1)")
             }
         }
         

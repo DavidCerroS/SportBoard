@@ -259,6 +259,13 @@ extension Activity {
         json["desnivel_positivo_m"] = Int(totalElevationGain.rounded())
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         json["fc_max"] = maxHeartrate != nil ? Int(maxHeartrate!.rounded()) : NSNull()
+        if ["run", "trailrun", "virtualrun"].contains(sportType.lowercased()) {
+            json["potencia_media"] = averageWatts != nil ? Int(averageWatts!.rounded()) : NSNull()
+            json["potencia_max"] = maxWatts != nil ? Int(maxWatts!.rounded()) : NSNull()
+        } else {
+            json["potencia_media"] = NSNull()
+            json["potencia_max"] = NSNull()
+        }
         json["tipo_parciales"] = tipoParciales
         json["parciales"] = parciales
         

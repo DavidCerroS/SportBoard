@@ -25,6 +25,8 @@ final class ActivityLap {
     var totalElevationGain: Double
     var positiveElevationGain: Double?
     var negativeElevationLoss: Double?
+    var averageWatts: Double?
+    var maxWatts: Double?
     
     var activity: Activity?
     
@@ -42,6 +44,8 @@ final class ActivityLap {
         totalElevationGain: Double = 0,
         positiveElevationGain: Double? = nil,
         negativeElevationLoss: Double? = nil,
+        averageWatts: Double? = nil,
+        maxWatts: Double? = nil,
         activity: Activity? = nil
     ) {
         self.lapIndex = lapIndex
@@ -57,6 +61,8 @@ final class ActivityLap {
         self.totalElevationGain = totalElevationGain
         self.positiveElevationGain = positiveElevationGain
         self.negativeElevationLoss = negativeElevationLoss
+        self.averageWatts = averageWatts
+        self.maxWatts = maxWatts
         self.activity = activity
     }
 }
@@ -104,6 +110,16 @@ extension ActivityLap {
     var formattedNegativeElevation: String {
         "-\(Int(effectiveNegativeElevationLoss.rounded()))m"
     }
+
+    var formattedAveragePower: String {
+        guard let averageWatts else { return "--" }
+        return "\(Int(averageWatts.rounded()))W"
+    }
+
+    var formattedMaxPower: String {
+        guard let maxWatts else { return "--" }
+        return "\(Int(maxWatts.rounded()))W"
+    }
 }
 
 // MARK: - JSON Export (Formato idéntico a la web)
@@ -128,6 +144,12 @@ extension ActivityLap {
         }
         if let hr = averageHeartrate {
             json["average_heartrate"] = hr
+        }
+        if let watts = averageWatts {
+            json["average_watts"] = watts
+        }
+        if let maxWatts = maxWatts {
+            json["max_watts"] = maxWatts
         }
         
         return json
@@ -175,7 +197,8 @@ extension ActivityLap {
         json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         json["fc_max"] = NSNull() // Strava no devuelve fc_max por parcial
-        json["potencia_media"] = NSNull() // Strava no devuelve potencia por parcial
+        json["potencia_media"] = averageWatts != nil ? Int(averageWatts!.rounded()) : NSNull()
+        json["potencia_max"] = maxWatts != nil ? Int(maxWatts!.rounded()) : NSNull()
         json["cadencia_media"] = NSNull() // Strava no devuelve cadencia por parcial
         
         return json

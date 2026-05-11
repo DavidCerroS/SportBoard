@@ -9,6 +9,8 @@
   "desnivel_positivo_m": 125,
   "fc_media": 152,
   "fc_max": 178,
+  "potencia_media": 215,
+  "potencia_max": 388,
   "tipo_parciales": "kilometros",
   "parciales": [
     {

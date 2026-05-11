@@ -21,6 +21,8 @@ final class ActivitySplit {
     var elevationDifference: Double // diferencia de elevación en este split
     var positiveElevationGain: Double?
     var negativeElevationLoss: Double?
+    var averageWatts: Double?
+    var maxWatts: Double?
     var paceZone: Int? // zona de ritmo (1-5)
     
     var activity: Activity?
@@ -35,6 +37,8 @@ final class ActivitySplit {
         elevationDifference: Double = 0,
         positiveElevationGain: Double? = nil,
         negativeElevationLoss: Double? = nil,
+        averageWatts: Double? = nil,
+        maxWatts: Double? = nil,
         paceZone: Int? = nil,
         activity: Activity? = nil
     ) {
@@ -47,6 +51,8 @@ final class ActivitySplit {
         self.elevationDifference = elevationDifference
         self.positiveElevationGain = positiveElevationGain
         self.negativeElevationLoss = negativeElevationLoss
+        self.averageWatts = averageWatts
+        self.maxWatts = maxWatts
         self.paceZone = paceZone
         self.activity = activity
     }
@@ -110,6 +116,16 @@ extension ActivitySplit {
 
     var formattedNegativeElevation: String {
         "-\(Int(effectiveNegativeElevationLoss.rounded()))m"
+    }
+
+    var formattedAveragePower: String {
+        guard let averageWatts else { return "--" }
+        return "\(Int(averageWatts.rounded()))W"
+    }
+
+    var formattedMaxPower: String {
+        guard let maxWatts else { return "--" }
+        return "\(Int(maxWatts.rounded()))W"
     }
     
     // MARK: - Debug Validation
@@ -217,6 +233,12 @@ extension ActivitySplit {
         if let hr = averageHeartrate {
             json["average_heartrate"] = hr
         }
+        if let watts = averageWatts {
+            json["average_watts"] = watts
+        }
+        if let maxWatts = maxWatts {
+            json["max_watts"] = maxWatts
+        }
         if let zone = paceZone {
             json["pace_zone"] = zone
         }
@@ -253,7 +275,9 @@ extension ActivitySplit {
         json["desnivel_positivo_m"] = Int(effectivePositiveElevationGain.rounded())
         json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
-        // NO incluir fc_max, potencia_media, cadencia_media (Strava no los devuelve por split)
+        json["potencia_media"] = averageWatts != nil ? Int(averageWatts!.rounded()) : NSNull()
+        json["potencia_max"] = maxWatts != nil ? Int(maxWatts!.rounded()) : NSNull()
+        // NO incluir fc_max ni cadencia_media (Strava no los devuelve por split)
         
         return json
     }

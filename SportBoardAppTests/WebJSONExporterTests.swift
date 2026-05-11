@@ -118,7 +118,9 @@ final class WebJSONExporterTests: XCTestCase {
             averageHeartrate: 150,
             elevationDifference: -3,
             positiveElevationGain: 12,
-            negativeElevationLoss: 15
+            negativeElevationLoss: 15,
+            averageWatts: 215.1,
+            maxWatts: 388
         )
 
         let json = split.toExportJSONWeb(index: 1)
@@ -126,6 +128,8 @@ final class WebJSONExporterTests: XCTestCase {
         XCTAssertEqual(json["desnivel_m"] as? Int, -3)
         XCTAssertEqual(json["desnivel_positivo_m"] as? Int, 12)
         XCTAssertEqual(json["desnivel_negativo_m"] as? Int, 15)
+        XCTAssertEqual(json["potencia_media"] as? Int, 215)
+        XCTAssertEqual(json["potencia_max"] as? Int, 388)
     }
 
     func testLapExportIncludesPositiveAndNegativeElevation() {
@@ -142,7 +146,9 @@ final class WebJSONExporterTests: XCTestCase {
             averageHeartrate: 170,
             totalElevationGain: 8,
             positiveElevationGain: 8,
-            negativeElevationLoss: 11
+            negativeElevationLoss: 11,
+            averageWatts: 312.4,
+            maxWatts: 451
         )
 
         let json = lap.toExportJSONWeb(index: 1)
@@ -150,6 +156,8 @@ final class WebJSONExporterTests: XCTestCase {
         XCTAssertEqual(json["desnivel_m"] as? Int, 8)
         XCTAssertEqual(json["desnivel_positivo_m"] as? Int, 8)
         XCTAssertEqual(json["desnivel_negativo_m"] as? Int, 11)
+        XCTAssertEqual(json["potencia_media"] as? Int, 312)
+        XCTAssertEqual(json["potencia_max"] as? Int, 451)
     }
     
     // MARK: - Helpers
@@ -184,7 +192,10 @@ final class WebJSONExporterTests: XCTestCase {
             maxSpeed: 4.0,
             averageHeartrate: 152,
             maxHeartrate: 178,
+            averageWatts: 215.1,
+            maxWatts: 388,
             hasHeartrate: true,
+            hasPowerMeter: true,
             hasSplitsMetric: true
         )
         
@@ -220,6 +231,32 @@ final class WebJSONExporterTests: XCTestCase {
         activity.splitsMetric = splits
         
         return activity
+    }
+
+    func testRunActivityExportIncludesAverageAndMaxWatts() throws {
+        let activity = Activity(
+            id: 987654321,
+            name: "Morning Run",
+            sportType: "Run",
+            startDate: Date(timeIntervalSince1970: 0),
+            startDateLocal: Date(timeIntervalSince1970: 0),
+            distance: 20000,
+            movingTime: 3600,
+            elapsedTime: 3700,
+            totalElevationGain: 250,
+            averageSpeed: 20000.0 / 3600.0,
+            maxSpeed: 12,
+            averageWatts: 215.1,
+            maxWatts: 388,
+            hasPowerMeter: true
+        )
+
+        let json = WebJSONExporter.exportActivityAsWebJSON(activity)
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let exported = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(exported["potencia_media"] as? Int, 215)
+        XCTAssertEqual(exported["potencia_max"] as? Int, 388)
     }
     
     private func loadGoldenFile(named name: String) throws -> String {

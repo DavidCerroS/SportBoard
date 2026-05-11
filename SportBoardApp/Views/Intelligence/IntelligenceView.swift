@@ -115,6 +115,11 @@ struct IntelligenceView: View {
                     // Herramientas
                     sectionHeader("Herramientas")
                     VStack(spacing: 12) {
+                        NavigationLink(value: "activityComparator") {
+                            Label("Comparar entrenos", systemImage: "arrow.left.arrow.right.circle")
+                                .font(.subheadline)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                         NavigationLink(value: "weekComparator") {
                             Label("Comparar semanas", systemImage: "calendar.badge.clock")
                                 .font(.subheadline)
@@ -157,7 +162,9 @@ struct IntelligenceView: View {
                 viewModel.loadStats()
             }
             .navigationDestination(for: String.self) { destination in
-                if destination == "weekComparator" {
+                if destination == "activityComparator" {
+                    ActivityComparisonView()
+                } else if destination == "weekComparator" {
                     WeekComparatorView()
                 } else if destination == "simulator" {
                     SimulatorView()

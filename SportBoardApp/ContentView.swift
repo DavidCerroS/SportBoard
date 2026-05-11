@@ -15,18 +15,20 @@ struct ContentView: View {
     @StateObject private var syncViewModel = SyncViewModel()
     
     var body: some View {
-        Group {
-            if authService.isAuthenticated {
-                MainTabView(
-                    dashboardViewModel: dashboardViewModel,
-                    activitiesViewModel: activitiesViewModel,
-                    syncViewModel: syncViewModel
-                )
-            } else {
-                LoginView()
+        SplashGateView {
+            Group {
+                if authService.isAuthenticated {
+                    MainTabView(
+                        dashboardViewModel: dashboardViewModel,
+                        activitiesViewModel: activitiesViewModel,
+                        syncViewModel: syncViewModel
+                    )
+                } else {
+                    LoginView()
+                }
             }
+            .animation(.easeInOut, value: authService.isAuthenticated)
         }
-        .animation(.easeInOut, value: authService.isAuthenticated)
     }
 }
 

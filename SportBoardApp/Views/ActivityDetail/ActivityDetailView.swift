@@ -13,25 +13,25 @@ struct ActivityDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ActivityDetailViewModel
     @State private var showReflectionSheet = false
-    
+
     private var isRun: Bool {
         ["run", "virtualrun", "trailrun"].contains(activity.sportType.lowercased())
     }
-    
+
     init(activity: Activity) {
         self.activity = activity
         self._viewModel = State(initialValue: ActivityDetailViewModel(activity: activity))
     }
-    
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Header con info principal
                 headerSection
-                
+
                 // Stats principales
                 statsGrid
-                
+
                 // Inteligencia local: clasificación y rodaje mal ejecutado (solo carrera)
                 if isRun {
                     if let c = viewModel.runClassification, c.shouldShow {
@@ -73,7 +73,7 @@ struct ActivityDetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
-                
+
                 // Sección de parciales (carga bajo demanda)
                 if viewModel.isLoadingDetails {
                     loadingDetailsSection
@@ -84,12 +84,12 @@ struct ActivityDetailView: View {
                     if viewModel.showLapsSection {
                         LapsTableView(laps: viewModel.laps, sportType: activity.sportType)
                     }
-                    
+
                     // Splits (por km) si existen y no hay laps
                     if viewModel.showSplitsSection {
                         SplitsTableView(splits: viewModel.splits, sportType: activity.sportType)
                     }
-                    
+
                     // Si tiene ambos, mostrar splits como sección secundaria
                     if viewModel.hasLaps && viewModel.hasSplits {
                         DisclosureGroup {
@@ -101,18 +101,18 @@ struct ActivityDetailView: View {
                         .background(Color(.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    
+
                     // Si aún no se han cargado los detalles, mostrar mensaje
                     if !activity.detailsFetched && !viewModel.hasLaps && !viewModel.hasSplits {
                         noDetailsSection
                     }
                 }
-                
+
                 // Descripción si existe
                 if let description = activity.activityDescription, !description.isEmpty {
                     descriptionSection(description)
                 }
-                
+
                 // Info adicional
                 additionalInfoSection
             }
@@ -125,6 +125,14 @@ struct ActivityDetailView: View {
                 ExportMenuView(viewModel: viewModel)
             }
             if isRun {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        ActivityComparisonView(initialFirstActivityID: activity.id)
+                    } label: {
+                        Label("Comparar", systemImage: "arrow.left.arrow.right")
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showReflectionSheet = true
@@ -152,9 +160,9 @@ struct ActivityDetailView: View {
             Text(viewModel.errorMessage)
         }
     }
-    
+
     // MARK: - Loading Section
-    
+
     private var loadingDetailsSection: some View {
         VStack(spacing: 12) {
             ProgressView()
@@ -168,7 +176,7 @@ struct ActivityDetailView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-    
+
     private func errorSection(_ error: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
@@ -178,7 +186,7 @@ struct ActivityDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            
+
             Button("Reintentar") {
                 Task {
                     await viewModel.loadDetailsIfNeeded(context: modelContext)
@@ -191,7 +199,7 @@ struct ActivityDetailView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-    
+
     private var noDetailsSection: some View {
         VStack(spacing: 8) {
             Image(systemName: "doc.text")
@@ -206,9 +214,9 @@ struct ActivityDetailView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-    
+
     // MARK: - Sections
-    
+
     private var headerSection: some View {
         VStack(spacing: 12) {
             // Icono y tipo
@@ -216,20 +224,20 @@ struct ActivityDetailView: View {
                 Circle()
                     .fill(Color.sportColor(for: activity.sportType).opacity(0.15))
                     .frame(width: 80, height: 80)
-                
+
                 Image(systemName: activity.sportType.sportIcon)
                     .font(.system(size: 36))
                     .foregroundStyle(Color.sportColor(for: activity.sportType))
             }
-            
+
             Text(activity.sportType.sportDisplayName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            
+
             Text(activity.startDate.fullDateTimeString)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-            
+
             if let device = activity.deviceName {
                 Text(device)
                     .font(.caption2)
@@ -241,7 +249,7 @@ struct ActivityDetailView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-    
+
     private var statsGrid: some View {
         LazyVGrid(columns: [
             GridItem(.flexible()),
@@ -255,7 +263,7 @@ struct ActivityDetailView: View {
                 icon: "ruler",
                 color: Color.stravaOrange
             )
-            
+
             // Tiempo
             StatItemView(
                 title: "Tiempo",
@@ -263,7 +271,7 @@ struct ActivityDetailView: View {
                 icon: "clock",
                 color: .blue
             )
-            
+
             // Ritmo/Velocidad
             StatItemView(
                 title: activity.speedOrPaceLabel,
@@ -272,7 +280,7 @@ struct ActivityDetailView: View {
                 icon: "speedometer",
                 color: .green
             )
-            
+
             // Desnivel
             StatItemView(
                 title: "Desnivel",
@@ -280,7 +288,7 @@ struct ActivityDetailView: View {
                 icon: "mountain.2",
                 color: .brown
             )
-            
+
             // FC Media
             if let hr = activity.averageHeartrate {
                 StatItemView(
@@ -291,7 +299,7 @@ struct ActivityDetailView: View {
                     color: .red
                 )
             }
-            
+
             // Potencia
             if let watts = activity.averageWatts {
                 StatItemView(
@@ -304,12 +312,12 @@ struct ActivityDetailView: View {
             }
         }
     }
-    
+
     private func descriptionSection(_ description: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Descripción")
                 .font(.headline)
-            
+
             Text(description)
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -319,25 +327,25 @@ struct ActivityDetailView: View {
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
-    
+
     private var additionalInfoSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Información Adicional")
                 .font(.headline)
-            
+
             LabeledContent("Tiempo transcurrido", value: TimeInterval(activity.elapsedTime).formattedDuration)
-            
+
             if let kj = activity.kilojoules {
                 LabeledContent("Calorías", value: "\(Int(kj)) kJ")
             }
-            
+
             LabeledContent("ID de Strava", value: "\(activity.id)")
-            
+
             LabeledContent("Sincronizado", value: activity.syncedAt.shortDateString)
-            
+
             Divider()
                 .padding(.vertical, 8)
-            
+
             // Botones de Debug y Resync
             VStack(spacing: 12) {
                 // Botón Resincronizar
@@ -359,7 +367,7 @@ struct ActivityDetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(viewModel.isResyncing)
-                
+
                 // Botón Debug (imprime en consola)
                 Button {
                     viewModel.printDebugData()
@@ -372,7 +380,7 @@ struct ActivityDetailView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.orange)
-                
+
                 // Mensaje de éxito
                 if viewModel.resyncSuccess {
                     HStack {
@@ -400,21 +408,21 @@ struct StatItemView: View {
     var subtitle: String? = nil
     let icon: String
     let color: Color
-    
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(color)
-            
+
             Text(value)
                 .font(.headline)
                 .fontWeight(.bold)
-            
+
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            
+
             if let subtitle = subtitle {
                 Text(subtitle)
                     .font(.caption2)
@@ -448,7 +456,7 @@ struct StatItemView: View {
         hasLaps: true,
         hasSplitsMetric: true
     )
-    
+
     return NavigationStack {
         ActivityDetailView(activity: activity)
     }

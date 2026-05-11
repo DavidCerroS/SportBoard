@@ -78,13 +78,13 @@ struct LapRowView: View {
                     .foregroundStyle(lap.averageHeartrate != nil ? .red : .secondary)
                     .frame(width: 40, alignment: .trailing)
                 
-                Text("--")
+                Text(lap.formattedAveragePower)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(lap.averageWatts != nil ? .purple : .secondary)
                     .frame(width: 40, alignment: .trailing)
             }
 
-            Text("Desnivel: \(Int(lap.totalElevationGain.rounded()))m | +\(Int(lap.effectivePositiveElevationGain.rounded()))m | -\(Int(lap.effectiveNegativeElevationLoss.rounded()))m")
+            Text("Desnivel: \(Int(lap.totalElevationGain.rounded()))m | +\(Int(lap.effectivePositiveElevationGain.rounded()))m | -\(Int(lap.effectiveNegativeElevationLoss.rounded()))m · Potencia max: \(lap.formattedMaxPower)")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -97,8 +97,8 @@ struct LapRowView: View {
 
 #Preview {
     let laps = [
-        ActivityLap(lapIndex: 0, name: "Lap 1", distance: 1000, movingTime: 298, averageSpeed: 3.35, averageHeartrate: 145),
-        ActivityLap(lapIndex: 1, name: "Lap 2", distance: 1000, movingTime: 285, averageSpeed: 3.50, averageHeartrate: 158),
+        ActivityLap(lapIndex: 0, name: "Lap 1", distance: 1000, movingTime: 298, averageSpeed: 3.35, averageHeartrate: 145, averageWatts: 245, maxWatts: 390),
+        ActivityLap(lapIndex: 1, name: "Lap 2", distance: 1000, movingTime: 285, averageSpeed: 3.50, averageHeartrate: 158, averageWatts: 260, maxWatts: 420),
         ActivityLap(lapIndex: 2, name: "Lap 3", distance: 1000, movingTime: 310, averageSpeed: 3.22, averageHeartrate: 162),
     ]
     

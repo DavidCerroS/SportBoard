@@ -26,6 +26,8 @@ struct SplitsTableView: View {
                     .frame(width: 55, alignment: .trailing)
                 Text("FC")
                     .frame(width: 45, alignment: .trailing)
+                Text("W")
+                    .frame(width: 45, alignment: .trailing)
                 Text("Desn.")
                     .frame(width: 50, alignment: .trailing)
             }
@@ -82,6 +84,11 @@ struct SplitRowView: View {
                     .font(.caption)
                     .foregroundStyle(split.averageHeartrate != nil ? .red : .secondary)
                     .frame(width: 45, alignment: .trailing)
+
+                Text(split.formattedAveragePower)
+                    .font(.caption)
+                    .foregroundStyle(split.averageWatts != nil ? .purple : .secondary)
+                    .frame(width: 45, alignment: .trailing)
                 
                 Text(split.formattedElevation)
                     .font(.caption)
@@ -89,7 +96,7 @@ struct SplitRowView: View {
                     .frame(width: 50, alignment: .trailing)
             }
 
-            Text("Desnivel: \(split.formattedElevation) | +\(Int(split.effectivePositiveElevationGain.rounded()))m | -\(Int(split.effectiveNegativeElevationLoss.rounded()))m")
+            Text("Desnivel: \(split.formattedElevation) | +\(Int(split.effectivePositiveElevationGain.rounded()))m | -\(Int(split.effectiveNegativeElevationLoss.rounded()))m · Potencia max: \(split.formattedMaxPower)")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -127,10 +134,10 @@ struct SplitRowView: View {
 
 #Preview {
     let splits = [
-        ActivitySplit(splitIndex: 0, distance: 1000, movingTime: 298, averageSpeed: 3.35, averageHeartrate: 145, elevationDifference: 12),
-        ActivitySplit(splitIndex: 1, distance: 1000, movingTime: 285, averageSpeed: 3.50, averageHeartrate: 158, elevationDifference: -5),
+        ActivitySplit(splitIndex: 0, distance: 1000, movingTime: 298, averageSpeed: 3.35, averageHeartrate: 145, elevationDifference: 12, averageWatts: 245, maxWatts: 390),
+        ActivitySplit(splitIndex: 1, distance: 1000, movingTime: 285, averageSpeed: 3.50, averageHeartrate: 158, elevationDifference: -5, averageWatts: 260, maxWatts: 420),
         ActivitySplit(splitIndex: 2, distance: 1000, movingTime: 310, averageSpeed: 3.22, averageHeartrate: 162, elevationDifference: 8),
-        ActivitySplit(splitIndex: 3, distance: 1000, movingTime: 275, averageSpeed: 3.63, averageHeartrate: 168, elevationDifference: -15),
+        ActivitySplit(splitIndex: 3, distance: 1000, movingTime: 275, averageSpeed: 3.63, averageHeartrate: 168, elevationDifference: -15, averageWatts: 275, maxWatts: 455),
     ]
     
     return SplitsTableView(splits: splits, sportType: "Run")
