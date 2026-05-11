@@ -107,6 +107,50 @@ final class WebJSONExporterTests: XCTestCase {
         XCTAssertEqual(formatDistanceKm(9290), "9.29")
         XCTAssertEqual(formatDistanceKm(290), "0.29")
     }
+
+    func testSplitExportIncludesPositiveAndNegativeElevation() {
+        let split = ActivitySplit(
+            splitIndex: 0,
+            distance: 1000,
+            movingTime: 360,
+            elapsedTime: 360,
+            averageSpeed: 1000.0 / 360.0,
+            averageHeartrate: 150,
+            elevationDifference: -3,
+            positiveElevationGain: 12,
+            negativeElevationLoss: 15
+        )
+
+        let json = split.toExportJSONWeb(index: 1)
+
+        XCTAssertEqual(json["desnivel_m"] as? Int, -3)
+        XCTAssertEqual(json["desnivel_positivo_m"] as? Int, 12)
+        XCTAssertEqual(json["desnivel_negativo_m"] as? Int, 15)
+    }
+
+    func testLapExportIncludesPositiveAndNegativeElevation() {
+        let lap = ActivityLap(
+            lapIndex: 0,
+            name: "Rep 1",
+            distance: 1000,
+            movingTime: 300,
+            elapsedTime: 300,
+            startIndex: 0,
+            endIndex: 1000,
+            averageSpeed: 1000.0 / 300.0,
+            maxSpeed: 4.0,
+            averageHeartrate: 170,
+            totalElevationGain: 8,
+            positiveElevationGain: 8,
+            negativeElevationLoss: 11
+        )
+
+        let json = lap.toExportJSONWeb(index: 1)
+
+        XCTAssertEqual(json["desnivel_m"] as? Int, 8)
+        XCTAssertEqual(json["desnivel_positivo_m"] as? Int, 8)
+        XCTAssertEqual(json["desnivel_negativo_m"] as? Int, 11)
+    }
     
     // MARK: - Helpers
     

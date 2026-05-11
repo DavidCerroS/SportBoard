@@ -188,6 +188,15 @@ struct StravaSplit: Codable {
     }
 }
 
+struct StravaStreamSeries<T: Codable>: Codable {
+    let data: [T]
+}
+
+struct StravaActivityStreamsResponse: Codable {
+    let distance: StravaStreamSeries<Double>?
+    let altitude: StravaStreamSeries<Double>?
+}
+
 // MARK: - Rate Limit Info
 
 struct RateLimitInfo {
@@ -315,6 +324,15 @@ actor StravaAPIService {
     func getActivityLaps(id: Int64) async throws -> [StravaLap] {
         return try await request(endpoint: "/activities/\(id)/laps")
     }
+
+    /// Obtiene streams de distancia y altitud para calcular desnivel +/-
+    func getActivityDistanceAndAltitudeStreams(id: Int64) async throws -> StravaActivityStreamsResponse {
+        let queryItems = [
+            URLQueryItem(name: "keys", value: "distance,altitude"),
+            URLQueryItem(name: "key_by_type", value: "true")
+        ]
+        return try await request(endpoint: "/activities/\(id)/streams", queryItems: queryItems)
+    }
     
     // MARK: - Private Methods
     
@@ -367,11 +385,13 @@ actor StravaAPIService {
             throw StravaAPIError.serverError(statusCode: httpResponse.statusCode)
         }
         
-        // Imprimir respuesta raw para getActivityDetail
+        // Imprimir respuesta raw para depurar lo que devuelve Strava
         if endpoint.contains("/activities/") && !endpoint.contains("/laps") {
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("\n========== STRAVA RAW JSON RESPONSE ==========")
+                print("URL: \(url.absoluteString)")
                 print("Endpoint: \(endpoint)")
+                print("Status: \(httpResponse.statusCode)")
                 print("Response JSON:")
                 // Intentar formatear el JSON para mejor legibilidad
                 if let jsonObject = try? JSONSerialization.jsonObject(with: data, options: []),

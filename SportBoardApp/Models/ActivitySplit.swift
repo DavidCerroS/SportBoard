@@ -19,6 +19,8 @@ final class ActivitySplit {
     var averageSpeed: Double // m/s
     var averageHeartrate: Double?
     var elevationDifference: Double // diferencia de elevación en este split
+    var positiveElevationGain: Double?
+    var negativeElevationLoss: Double?
     var paceZone: Int? // zona de ritmo (1-5)
     
     var activity: Activity?
@@ -31,6 +33,8 @@ final class ActivitySplit {
         averageSpeed: Double = 0,
         averageHeartrate: Double? = nil,
         elevationDifference: Double = 0,
+        positiveElevationGain: Double? = nil,
+        negativeElevationLoss: Double? = nil,
         paceZone: Int? = nil,
         activity: Activity? = nil
     ) {
@@ -41,6 +45,8 @@ final class ActivitySplit {
         self.averageSpeed = averageSpeed
         self.averageHeartrate = averageHeartrate
         self.elevationDifference = elevationDifference
+        self.positiveElevationGain = positiveElevationGain
+        self.negativeElevationLoss = negativeElevationLoss
         self.paceZone = paceZone
         self.activity = activity
     }
@@ -88,6 +94,22 @@ extension ActivitySplit {
     var formattedElevation: String {
         let sign = elevationDifference >= 0 ? "+" : ""
         return "\(sign)\(Int(elevationDifference))m"
+    }
+
+    var effectivePositiveElevationGain: Double {
+        positiveElevationGain ?? max(elevationDifference, 0)
+    }
+
+    var effectiveNegativeElevationLoss: Double {
+        negativeElevationLoss ?? max(-elevationDifference, 0)
+    }
+
+    var formattedPositiveElevation: String {
+        "+\(Int(effectivePositiveElevationGain.rounded()))m"
+    }
+
+    var formattedNegativeElevation: String {
+        "-\(Int(effectiveNegativeElevationLoss.rounded()))m"
     }
     
     // MARK: - Debug Validation
@@ -187,7 +209,9 @@ extension ActivitySplit {
             "moving_time": movingTime,
             "elapsed_time": elapsedTime,
             "average_speed": averageSpeed,
-            "elevation_difference": elevationDifference
+            "elevation_difference": elevationDifference,
+            "elevation_gain_positive": effectivePositiveElevationGain,
+            "elevation_loss_negative": effectiveNegativeElevationLoss
         ]
         
         if let hr = averageHeartrate {
@@ -226,6 +250,8 @@ extension ActivitySplit {
         json["ritmo"] = ritmo
         json["ritmo_s_km"] = ritmoSKmValue
         json["desnivel_m"] = Int(elevationDifference.rounded())
+        json["desnivel_positivo_m"] = Int(effectivePositiveElevationGain.rounded())
+        json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         // NO incluir fc_max, potencia_media, cadencia_media (Strava no los devuelve por split)
         

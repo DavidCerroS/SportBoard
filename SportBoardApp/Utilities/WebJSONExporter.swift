@@ -109,7 +109,8 @@ struct WebJSONExporter {
     private static func buildLapParcial(lap: ActivityLap, index: Int) -> [String: Any] {
         // Orden EXACTO de cada parcial (web):
         // parcial, nombre, distancia_km, tiempo, tiempo_s, ritmo, ritmo_s_km,
-        // desnivel_m, fc_media, fc_max, potencia_media, cadencia_media
+        // desnivel_m, desnivel_positivo_m, desnivel_negativo_m,
+        // fc_media, fc_max, potencia_media, cadencia_media
         
         let distanciaKm = roundTo2Decimals(lap.distance / 1000)
         let tiempo = formatTime(lap.movingTime)
@@ -128,6 +129,8 @@ struct WebJSONExporter {
         }()
         
         let desnivelM = Int(lap.totalElevationGain.rounded())
+        let desnivelPositivoM = Int(lap.effectivePositiveElevationGain.rounded())
+        let desnivelNegativoM = Int(lap.effectiveNegativeElevationLoss.rounded())
         
         return [
             "parcial": index,
@@ -138,6 +141,8 @@ struct WebJSONExporter {
             "ritmo": ritmo,
             "ritmo_s_km": ritmoSKm ?? NSNull(),
             "desnivel_m": desnivelM,
+            "desnivel_positivo_m": desnivelPositivoM,
+            "desnivel_negativo_m": desnivelNegativoM,
             "fc_media": lap.averageHeartrate != nil ? Int(lap.averageHeartrate!.rounded()) : NSNull(),
             "fc_max": NSNull(), // Strava no devuelve fc_max por parcial
             "potencia_media": NSNull(), // Strava no devuelve potencia por parcial
@@ -154,6 +159,8 @@ struct WebJSONExporter {
         let ritmoSKmAny: Any = split.ritmoSKm.map { $0 } ?? NSNull() // Ya calculado desde elapsedTime
         
         let desnivelM = Int(split.elevationDifference.rounded())
+        let desnivelPositivoM = Int(split.effectivePositiveElevationGain.rounded())
+        let desnivelNegativoM = Int(split.effectiveNegativeElevationLoss.rounded())
         
         return [
             "parcial": index,
@@ -164,6 +171,8 @@ struct WebJSONExporter {
             "ritmo": ritmo,
             "ritmo_s_km": ritmoSKmAny,
             "desnivel_m": desnivelM,
+            "desnivel_positivo_m": desnivelPositivoM,
+            "desnivel_negativo_m": desnivelNegativoM,
             "fc_media": split.averageHeartrate != nil ? Int(split.averageHeartrate!.rounded()) : NSNull()
             // NO incluir fc_max, potencia_media, cadencia_media (Strava no los devuelve)
         ]
@@ -173,7 +182,8 @@ struct WebJSONExporter {
         // Orden EXACTO de claves (sin incluir campos que siempre son null)
         let keys = [
             "parcial", "nombre", "distancia_km", "tiempo", "tiempo_s",
-            "ritmo", "ritmo_s_km", "desnivel_m", "fc_media"
+            "ritmo", "ritmo_s_km", "desnivel_m", "desnivel_positivo_m",
+            "desnivel_negativo_m", "fc_media"
         ]
         
         // Campos opcionales que solo se incluyen si no son null

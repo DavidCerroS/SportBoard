@@ -166,61 +166,58 @@ final class SyncService: ObservableObject {
     
     /// Carga los detalles de una actividad bajo demanda (laps y splits)
     func fetchActivityDetailsOnDemand(activity: Activity, context: ModelContext) async throws {
-        guard !activity.detailsFetched else { return }
+        if activity.detailsFetched {
+            try await backfillElevationBreakdownsIfNeeded(activity: activity, context: context)
+            return
+        }
         
         let detail = try await api.getActivityDetail(id: activity.id)
         
         // Debug: mostrar datos raw de Strava
         printStravaDebug(detail: detail, activityName: activity.name)
-        
-        // Actualizar campos adicionales
+
         activity.activityDescription = detail.description
         activity.deviceName = detail.deviceName
         activity.detailsFetched = true
-        
-        // Procesar laps (parciales de trabajo)
-        if let laps = detail.laps, laps.count > 1 {
-            activity.hasLaps = true
-            
-            for lap in laps {
-                let activityLap = ActivityLap(
-                    lapIndex: lap.lapIndex,
-                    name: lap.name,
-                    distance: lap.distance,
-                    movingTime: lap.movingTime,
-                    elapsedTime: lap.elapsedTime,
-                    startIndex: lap.startIndex,
-                    endIndex: lap.endIndex,
-                    averageSpeed: lap.averageSpeed,
-                    maxSpeed: lap.maxSpeed,
-                    averageHeartrate: lap.averageHeartrate,
-                    totalElevationGain: lap.totalElevationGain ?? 0,
-                    activity: activity
+
+        await applyActivityDetail(detail, to: activity, context: context)
+        try context.save()
+    }
+
+    func backfillElevationBreakdownsIfNeeded(activity: Activity, context: ModelContext) async throws {
+        let laps = activity.sortedLaps ?? []
+        let splits = activity.sortedSplits ?? []
+
+        let needsBackfill = laps.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil } ||
+            splits.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil }
+
+        guard needsBackfill else { return }
+
+        guard let breakdowns = await fetchElevationBreakdowns(
+            activityId: activity.id,
+            lapSegments: laps.map {
+                LapElevationSegment(
+                    distance: $0.distance,
+                    startIndex: $0.startIndex,
+                    endIndex: $0.endIndex,
+                    positiveElevationGain: $0.totalElevationGain
                 )
-                context.insert(activityLap)
-            }
+            },
+            splitDistances: splits.map(\.distance)
+        ) else {
+            return
         }
-        
-        // Procesar splits (por kilómetro)
-        if let splits = detail.splitsMetric, !splits.isEmpty {
-            activity.hasSplitsMetric = true
-            
-            for split in splits {
-                let activitySplit = ActivitySplit(
-                    splitIndex: split.split - 1,
-                    distance: split.distance,
-                    movingTime: split.movingTime,
-                    elapsedTime: split.elapsedTime,
-                    averageSpeed: split.averageSpeed,
-                    averageHeartrate: split.averageHeartrate,
-                    elevationDifference: split.elevationDifference,
-                    paceZone: split.paceZone,
-                    activity: activity
-                )
-                context.insert(activitySplit)
-            }
+
+        for (lap, breakdown) in zip(laps, breakdowns.laps) {
+            lap.positiveElevationGain = breakdown.positive
+            lap.negativeElevationLoss = breakdown.negative
         }
-        
+
+        for (split, breakdown) in zip(splits, breakdowns.splits) {
+            split.positiveElevationGain = breakdown.positive
+            split.negativeElevationLoss = breakdown.negative
+        }
+
         try context.save()
     }
     
@@ -477,50 +474,7 @@ final class SyncService: ObservableObject {
             activity.activityDescription = detail.description
             activity.deviceName = detail.deviceName
             activity.detailsFetched = true
-            
-            // Procesar laps (parciales de trabajo)
-            if let laps = detail.laps, laps.count > 1 {
-                // Solo guardar laps si hay más de 1 (si hay 1 solo, es la actividad completa)
-                activity.hasLaps = true
-                
-                for lap in laps {
-                    let activityLap = ActivityLap(
-                        lapIndex: lap.lapIndex,
-                        name: lap.name,
-                        distance: lap.distance,
-                        movingTime: lap.movingTime,
-                        elapsedTime: lap.elapsedTime,
-                        startIndex: lap.startIndex,
-                        endIndex: lap.endIndex,
-                        averageSpeed: lap.averageSpeed,
-                        maxSpeed: lap.maxSpeed,
-                        averageHeartrate: lap.averageHeartrate,
-                        totalElevationGain: lap.totalElevationGain ?? 0,
-                        activity: activity
-                    )
-                    context.insert(activityLap)
-                }
-            }
-            
-            // Procesar splits (por kilómetro)
-            if let splits = detail.splitsMetric, !splits.isEmpty {
-                activity.hasSplitsMetric = true
-                
-                for split in splits {
-                    let activitySplit = ActivitySplit(
-                        splitIndex: split.split - 1, // Strava usa 1-based
-                        distance: split.distance,
-                        movingTime: split.movingTime,
-                        elapsedTime: split.elapsedTime,
-                        averageSpeed: split.averageSpeed,
-                        averageHeartrate: split.averageHeartrate,
-                        elevationDifference: split.elevationDifference,
-                        paceZone: split.paceZone,
-                        activity: activity
-                    )
-                    context.insert(activitySplit)
-                }
-            }
+            await applyActivityDetail(detail, to: activity, context: context)
             
             try? await Task.sleep(nanoseconds: Constants.Sync.requestDelayMs)
             
@@ -769,49 +723,7 @@ final class SyncService: ObservableObject {
         activity.activityDescription = detail.description
         activity.deviceName = detail.deviceName
         activity.detailsFetched = true
-        
-        // Procesar laps
-        if let laps = detail.laps, laps.count > 1 {
-            activity.hasLaps = true
-            
-            for lap in laps {
-                let activityLap = ActivityLap(
-                    lapIndex: lap.lapIndex,
-                    name: lap.name,
-                    distance: lap.distance,
-                    movingTime: lap.movingTime,
-                    elapsedTime: lap.elapsedTime,
-                    startIndex: lap.startIndex,
-                    endIndex: lap.endIndex,
-                    averageSpeed: lap.averageSpeed,
-                    maxSpeed: lap.maxSpeed,
-                    averageHeartrate: lap.averageHeartrate,
-                    totalElevationGain: lap.totalElevationGain ?? 0,
-                    activity: activity
-                )
-                context.insert(activityLap)
-            }
-        }
-        
-        // Procesar splits
-        if let splits = detail.splitsMetric, !splits.isEmpty {
-            activity.hasSplitsMetric = true
-            
-            for split in splits {
-                let activitySplit = ActivitySplit(
-                    splitIndex: split.split - 1,
-                    distance: split.distance,
-                    movingTime: split.movingTime,
-                    elapsedTime: split.elapsedTime,
-                    averageSpeed: split.averageSpeed,
-                    averageHeartrate: split.averageHeartrate,
-                    elevationDifference: split.elevationDifference,
-                    paceZone: split.paceZone,
-                    activity: activity
-                )
-                context.insert(activitySplit)
-            }
-        }
+        await applyActivityDetail(detail, to: activity, context: context)
         
         try context.save()
         
@@ -827,34 +739,174 @@ final class SyncService: ObservableObject {
         print("Activity: \(activityName)")
         print("start_date: \(detail.startDate)")
         print("start_date_local: \(detail.startDateLocal)")
+        print("total_elevation_gain: \(detail.totalElevationGain)")
         
         if let laps = detail.laps {
             print("\nLAPS (\(laps.count) total):")
-            for (i, lap) in laps.prefix(3).enumerated() {
-                print("  Lap \(i+1): distance=\(lap.distance)m, time=\(lap.movingTime)s")
+            for (i, lap) in laps.enumerated() {
+                print("  Lap \(i+1): distance=\(lap.distance)m, time=\(lap.movingTime)s, total_elevation_gain=\(lap.totalElevationGain ?? -1)")
                 print("    fc_media=\(lap.averageHeartrate ?? -1), fc_max=\(lap.maxHeartrate ?? -1)")
                 print("    potencia_media=\(lap.averageWatts ?? -1)")
             }
-            if laps.count > 3 { print("  ... and \(laps.count - 3) more") }
         } else {
             print("\nLAPS: none")
         }
         
         if let splits = detail.splitsMetric {
             print("\nSPLITS_METRIC (\(splits.count) total):")
-            for (i, split) in splits.prefix(3).enumerated() {
-                print("  Km \(i+1): distance=\(split.distance)m, time=\(split.movingTime)s")
+            for (i, split) in splits.enumerated() {
+                print("  Km \(i+1): distance=\(split.distance)m, time=\(split.movingTime)s, elevation_difference=\(split.elevationDifference)")
                 print("    fc_media=\(split.averageHeartrate ?? -1), fc_max=\(split.maxHeartrate ?? -1)")
                 print("    potencia_media=\(split.averageWatts ?? -1)")
             }
-            if splits.count > 3 { print("  ... and \(splits.count - 3) more") }
         } else {
             print("\nSPLITS_METRIC: none")
         }
         
         print("---------- END STRAVA RAW ----------\n")
     }
-    
+
+    private func applyActivityDetail(_ detail: StravaActivityDetail, to activity: Activity, context: ModelContext) async {
+        let lapPayloads = (detail.laps?.count ?? 0) > 1 ? (detail.laps ?? []) : []
+        let splitPayloads = detail.splitsMetric ?? []
+        let elevationBreakdowns = await fetchElevationBreakdowns(
+            activityId: activity.id,
+            lapSegments: lapPayloads.map {
+                LapElevationSegment(
+                    distance: $0.distance,
+                    startIndex: $0.startIndex,
+                    endIndex: $0.endIndex,
+                    positiveElevationGain: $0.totalElevationGain ?? 0
+                )
+            },
+            splitDistances: splitPayloads.map(\.distance)
+        )
+
+        activity.hasLaps = !lapPayloads.isEmpty
+        activity.hasSplitsMetric = !splitPayloads.isEmpty
+
+        for (index, lap) in lapPayloads.enumerated() {
+            let breakdown = elevationBreakdowns?.laps.indices.contains(index) == true ? elevationBreakdowns?.laps[index] : nil
+            let activityLap = ActivityLap(
+                lapIndex: lap.lapIndex,
+                name: lap.name,
+                distance: lap.distance,
+                movingTime: lap.movingTime,
+                elapsedTime: lap.elapsedTime,
+                startIndex: lap.startIndex,
+                endIndex: lap.endIndex,
+                averageSpeed: lap.averageSpeed,
+                maxSpeed: lap.maxSpeed,
+                averageHeartrate: lap.averageHeartrate,
+                totalElevationGain: lap.totalElevationGain ?? 0,
+                positiveElevationGain: breakdown?.positive,
+                negativeElevationLoss: breakdown?.negative,
+                activity: activity
+            )
+            context.insert(activityLap)
+        }
+
+        for (index, split) in splitPayloads.enumerated() {
+            let breakdown = elevationBreakdowns?.splits.indices.contains(index) == true ? elevationBreakdowns?.splits[index] : nil
+            let activitySplit = ActivitySplit(
+                splitIndex: split.split - 1,
+                distance: split.distance,
+                movingTime: split.movingTime,
+                elapsedTime: split.elapsedTime,
+                averageSpeed: split.averageSpeed,
+                averageHeartrate: split.averageHeartrate,
+                elevationDifference: split.elevationDifference,
+                positiveElevationGain: breakdown?.positive,
+                negativeElevationLoss: breakdown?.negative,
+                paceZone: split.paceZone,
+                activity: activity
+            )
+            context.insert(activitySplit)
+        }
+    }
+
+    private func fetchElevationBreakdowns(
+        activityId: Int64,
+        lapSegments: [LapElevationSegment],
+        splitDistances: [Double]
+    ) async -> (laps: [ElevationBreakdown], splits: [ElevationBreakdown])? {
+        guard !lapSegments.isEmpty || !splitDistances.isEmpty else { return nil }
+
+        do {
+            let streams = try await api.getActivityDistanceAndAltitudeStreams(id: activityId)
+            guard
+                let distanceStream = streams.distance?.data,
+                let altitudeStream = streams.altitude?.data
+            else {
+                print("\n---------- STRAVA STREAMS SUMMARY ----------")
+                print("Activity ID: \(activityId)")
+                print("distance stream: \(streams.distance?.data.count ?? 0) puntos")
+                print("altitude stream: \(streams.altitude?.data.count ?? 0) puntos")
+                print("Streams incompletos, no se puede calcular desnivel +/-")
+                print("---------- END STRAVA STREAMS SUMMARY ----------\n")
+                return nil
+            }
+
+            print("\n---------- STRAVA STREAMS SUMMARY ----------")
+            print("Activity ID: \(activityId)")
+            print("distance stream: \(distanceStream.count) puntos")
+            print("altitude stream: \(altitudeStream.count) puntos")
+            if let firstDistance = distanceStream.first, let lastDistance = distanceStream.last {
+                print("distance first/last: \(firstDistance)m -> \(lastDistance)m")
+            }
+            if let firstAltitude = altitudeStream.first, let lastAltitude = altitudeStream.last {
+                print("altitude first/last: \(firstAltitude)m -> \(lastAltitude)m")
+            }
+
+            let calculatedLapBreakdowns = ElevationBreakdownCalculator.calculateIndexBreakdowns(
+                indexRanges: lapSegments.map { ($0.startIndex, $0.endIndex) },
+                altitudeStream: altitudeStream
+            ) ?? []
+            let lapBreakdowns = zip(lapSegments, calculatedLapBreakdowns).map { segment, breakdown in
+                ElevationBreakdown(
+                    positive: segment.positiveElevationGain,
+                    negative: breakdown.negative
+                )
+            }
+
+            if !lapSegments.isEmpty {
+                print("LAP BREAKDOWNS:")
+                for (index, segment) in lapSegments.enumerated() {
+                    let breakdown = lapBreakdowns.indices.contains(index) ? lapBreakdowns[index] : ElevationBreakdown(positive: 0, negative: 0)
+                    print("  Lap \(index + 1): distance=\(segment.distance)m, idx=\(segment.startIndex)->\(segment.endIndex), +\(Int(breakdown.positive.rounded()))m, -\(Int(breakdown.negative.rounded()))m")
+                }
+            }
+
+            let splitBreakdowns = ElevationBreakdownCalculator.calculateSequentialBreakdowns(
+                segmentDistances: splitDistances,
+                distanceStream: distanceStream,
+                altitudeStream: altitudeStream
+            ) ?? []
+
+            if !splitDistances.isEmpty {
+                print("SPLIT BREAKDOWNS:")
+                for (index, distance) in splitDistances.enumerated() {
+                    let breakdown = splitBreakdowns.indices.contains(index) ? splitBreakdowns[index] : ElevationBreakdown(positive: 0, negative: 0)
+                    print("  Split \(index + 1): distance=\(distance)m, +\(Int(breakdown.positive.rounded()))m, -\(Int(breakdown.negative.rounded()))m")
+                }
+            }
+
+            print("---------- END STRAVA STREAMS SUMMARY ----------\n")
+
+            return (lapBreakdowns, splitBreakdowns)
+        } catch {
+            print("No se pudieron calcular desniveles +/- para actividad \(activityId): \(error)")
+            return nil
+        }
+    }
+
+    private struct LapElevationSegment {
+        let distance: Double
+        let startIndex: Int
+        let endIndex: Int
+        let positiveElevationGain: Double
+    }
+
     /// Imprime los datos almacenados de una actividad
     private func printStoredActivityDebug(activity: Activity) {
         print("\n---------- STORED ACTIVITY DATA ----------")

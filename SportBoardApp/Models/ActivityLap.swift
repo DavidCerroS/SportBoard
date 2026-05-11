@@ -23,6 +23,8 @@ final class ActivityLap {
     var maxSpeed: Double // m/s
     var averageHeartrate: Double?
     var totalElevationGain: Double
+    var positiveElevationGain: Double?
+    var negativeElevationLoss: Double?
     
     var activity: Activity?
     
@@ -38,6 +40,8 @@ final class ActivityLap {
         maxSpeed: Double = 0,
         averageHeartrate: Double? = nil,
         totalElevationGain: Double = 0,
+        positiveElevationGain: Double? = nil,
+        negativeElevationLoss: Double? = nil,
         activity: Activity? = nil
     ) {
         self.lapIndex = lapIndex
@@ -51,6 +55,8 @@ final class ActivityLap {
         self.maxSpeed = maxSpeed
         self.averageHeartrate = averageHeartrate
         self.totalElevationGain = totalElevationGain
+        self.positiveElevationGain = positiveElevationGain
+        self.negativeElevationLoss = negativeElevationLoss
         self.activity = activity
     }
 }
@@ -82,6 +88,22 @@ extension ActivityLap {
     var displayName: String {
         name ?? "Parcial \(lapIndex + 1)"
     }
+
+    var effectivePositiveElevationGain: Double {
+        positiveElevationGain ?? totalElevationGain
+    }
+
+    var effectiveNegativeElevationLoss: Double {
+        negativeElevationLoss ?? 0
+    }
+
+    var formattedPositiveElevation: String {
+        "+\(Int(effectivePositiveElevationGain.rounded()))m"
+    }
+
+    var formattedNegativeElevation: String {
+        "-\(Int(effectiveNegativeElevationLoss.rounded()))m"
+    }
 }
 
 // MARK: - JSON Export (Formato idéntico a la web)
@@ -96,7 +118,9 @@ extension ActivityLap {
             "elapsed_time": elapsedTime,
             "average_speed": averageSpeed,
             "max_speed": maxSpeed,
-            "elevation_gain": totalElevationGain
+            "elevation_gain": totalElevationGain,
+            "elevation_gain_positive": effectivePositiveElevationGain,
+            "elevation_loss_negative": effectiveNegativeElevationLoss
         ]
         
         if let name = name {
@@ -147,6 +171,8 @@ extension ActivityLap {
         json["ritmo"] = ritmo
         json["ritmo_s_km"] = ritmoSKm
         json["desnivel_m"] = Int(totalElevationGain.rounded())
+        json["desnivel_positivo_m"] = Int(effectivePositiveElevationGain.rounded())
+        json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         json["fc_max"] = NSNull() // Strava no devuelve fc_max por parcial
         json["potencia_media"] = NSNull() // Strava no devuelve potencia por parcial

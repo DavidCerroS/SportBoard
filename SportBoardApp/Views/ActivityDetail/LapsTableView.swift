@@ -53,34 +53,40 @@ struct LapRowView: View {
     let sportType: String
     
     var body: some View {
-        HStack(spacing: 0) {
-            Text("\(lap.lapIndex + 1)")
-                .font(.caption)
-                .fontWeight(.medium)
-                .frame(width: 30, alignment: .leading)
-            
-            Text(lap.formattedDistance)
-                .font(.caption)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text(lap.formattedTime)
-                .font(.caption)
-                .frame(width: 60, alignment: .trailing)
-            
-            Text(sportType.usesPace ? lap.formattedPace : lap.formattedSpeed)
-                .font(.caption)
-                .fontWeight(.medium)
-                .frame(width: 55, alignment: .trailing)
-            
-            Text(lap.formattedHeartrate)
-                .font(.caption)
-                .foregroundStyle(lap.averageHeartrate != nil ? .red : .secondary)
-                .frame(width: 40, alignment: .trailing)
-            
-            Text("--")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 0) {
+                Text("\(lap.lapIndex + 1)")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(width: 30, alignment: .leading)
+                
+                Text(lap.formattedDistance)
+                    .font(.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Text(lap.formattedTime)
+                    .font(.caption)
+                    .frame(width: 60, alignment: .trailing)
+                
+                Text(sportType.usesPace ? lap.formattedPace : lap.formattedSpeed)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(width: 55, alignment: .trailing)
+                
+                Text(lap.formattedHeartrate)
+                    .font(.caption)
+                    .foregroundStyle(lap.averageHeartrate != nil ? .red : .secondary)
+                    .frame(width: 40, alignment: .trailing)
+                
+                Text("--")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 40, alignment: .trailing)
+            }
+
+            Text("Desnivel: \(Int(lap.totalElevationGain.rounded()))m | +\(Int(lap.effectivePositiveElevationGain.rounded()))m | -\(Int(lap.effectiveNegativeElevationLoss.rounded()))m")
+                .font(.caption2)
                 .foregroundStyle(.secondary)
-                .frame(width: 40, alignment: .trailing)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

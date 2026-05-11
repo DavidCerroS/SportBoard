@@ -61,31 +61,37 @@ struct SplitRowView: View {
     let slowestPace: Double
     
     var body: some View {
-        HStack(spacing: 0) {
-            Text(split.formattedKm)
-                .font(.caption)
-                .fontWeight(.medium)
-                .frame(width: 40, alignment: .leading)
-            
-            Text(split.formattedTime)
-                .font(.caption)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Text(sportType.usesPace ? split.formattedPace : split.formattedSpeed)
-                .font(.caption)
-                .fontWeight(.medium)
-                .foregroundStyle(paceColor)
-                .frame(width: 55, alignment: .trailing)
-            
-            Text(split.formattedHeartrate)
-                .font(.caption)
-                .foregroundStyle(split.averageHeartrate != nil ? .red : .secondary)
-                .frame(width: 45, alignment: .trailing)
-            
-            Text(split.formattedElevation)
-                .font(.caption)
-                .foregroundStyle(elevationColor)
-                .frame(width: 50, alignment: .trailing)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 0) {
+                Text(split.formattedKm)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .frame(width: 40, alignment: .leading)
+                
+                Text(split.formattedTime)
+                    .font(.caption)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Text(sportType.usesPace ? split.formattedPace : split.formattedSpeed)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(paceColor)
+                    .frame(width: 55, alignment: .trailing)
+                
+                Text(split.formattedHeartrate)
+                    .font(.caption)
+                    .foregroundStyle(split.averageHeartrate != nil ? .red : .secondary)
+                    .frame(width: 45, alignment: .trailing)
+                
+                Text(split.formattedElevation)
+                    .font(.caption)
+                    .foregroundStyle(elevationColor)
+                    .frame(width: 50, alignment: .trailing)
+            }
+
+            Text("Desnivel: \(split.formattedElevation) | +\(Int(split.effectivePositiveElevationGain.rounded()))m | -\(Int(split.effectiveNegativeElevationLoss.rounded()))m")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

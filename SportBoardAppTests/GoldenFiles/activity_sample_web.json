@@ -20,6 +20,8 @@
       "ritmo": "6:15",
       "ritmo_s_km": 375,
       "desnivel_m": 12,
+      "desnivel_positivo_m": 12,
+      "desnivel_negativo_m": 0,
       "fc_media": 145
     },
     {
@@ -31,6 +33,8 @@
       "ritmo": "5:58",
       "ritmo_s_km": 358,
       "desnivel_m": 8,
+      "desnivel_positivo_m": 8,
+      "desnivel_negativo_m": 0,
       "fc_media": 150
     },
     {
@@ -42,6 +46,8 @@
       "ritmo": "5:52",
       "ritmo_s_km": 352,
       "desnivel_m": 15,
+      "desnivel_positivo_m": 15,
+      "desnivel_negativo_m": 0,
       "fc_media": 153
     },
     {
@@ -53,6 +59,8 @@
       "ritmo": "5:45",
       "ritmo_s_km": 345,
       "desnivel_m": 10,
+      "desnivel_positivo_m": 10,
+      "desnivel_negativo_m": 0,
       "fc_media": 155
     },
     {
@@ -64,6 +72,8 @@
       "ritmo": "5:50",
       "ritmo_s_km": 350,
       "desnivel_m": 18,
+      "desnivel_positivo_m": 18,
+      "desnivel_negativo_m": 0,
       "fc_media": 156
     },
     {
@@ -75,6 +85,8 @@
       "ritmo": "5:55",
       "ritmo_s_km": 355,
       "desnivel_m": 14,
+      "desnivel_positivo_m": 14,
+      "desnivel_negativo_m": 0,
       "fc_media": 154
     },
     {
@@ -86,6 +98,8 @@
       "ritmo": "6:02",
       "ritmo_s_km": 362,
       "desnivel_m": 11,
+      "desnivel_positivo_m": 11,
+      "desnivel_negativo_m": 0,
       "fc_media": 152
     },
     {
@@ -97,6 +111,8 @@
       "ritmo": "6:08",
       "ritmo_s_km": 368,
       "desnivel_m": 16,
+      "desnivel_positivo_m": 16,
+      "desnivel_negativo_m": 0,
       "fc_media": 150
     },
     {
@@ -108,6 +124,8 @@
       "ritmo": "6:09",
       "ritmo_s_km": 369,
       "desnivel_m": 13,
+      "desnivel_positivo_m": 13,
+      "desnivel_negativo_m": 0,
       "fc_media": 148
     },
     {
@@ -119,6 +137,8 @@
       "ritmo": "5:07",
       "ritmo_s_km": 307,
       "desnivel_m": 8,
+      "desnivel_positivo_m": 8,
+      "desnivel_negativo_m": 0,
       "fc_media": 155
     }
   ]
