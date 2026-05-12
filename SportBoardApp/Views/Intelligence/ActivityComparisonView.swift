@@ -91,6 +91,8 @@ struct ActivityComparisonView: View {
     private var selectionSection: some View {
         Section("Selección") {
             Picker("Entreno A", selection: $selectedFirstID) {
+                Text("Selecciona un entreno")
+                    .tag(nil as Int64?)
                 ForEach(activities, id: \.id) { activity in
                     Text(selectionLabel(for: activity))
                         .tag(Optional(activity.id))
@@ -99,6 +101,8 @@ struct ActivityComparisonView: View {
             .pickerStyle(.menu)
 
             Picker("Entreno B", selection: $selectedSecondID) {
+                Text("Selecciona un entreno")
+                    .tag(nil as Int64?)
                 ForEach(activities, id: \.id) { activity in
                     Text(selectionLabel(for: activity))
                         .tag(Optional(activity.id))
@@ -208,6 +212,9 @@ struct ActivityComparisonView: View {
         if selectedSecondID == nil || activity(for: selectedSecondID) == nil || selectedSecondID == selectedFirstID {
             selectedSecondID = activities.first { $0.id != selectedFirstID }?.id
         }
+
+        let matchingIDs = activities.map(\.id)
+        print("[SportBoard][Comparison] filtro=\(filter.title) totalRuns=\(allActivities.count) matches=\(activities.count) selectedA=\(selectedFirstID.map(String.init) ?? "nil") selectedB=\(selectedSecondID.map(String.init) ?? "nil") ids=\(matchingIDs)")
     }
 
     private func activity(for id: Int64?) -> Activity? {
