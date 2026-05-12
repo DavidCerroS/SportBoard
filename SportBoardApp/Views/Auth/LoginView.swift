@@ -12,28 +12,20 @@ struct LoginView: View {
     @State private var showError = false
     
     var body: some View {
-        VStack(spacing: 40) {
-            Spacer()
-            
-            // Logo y título
-            VStack(spacing: 16) {
-                Image(systemName: "chart.bar.xaxis")
-                    .font(.system(size: 80))
-                    .foregroundStyle(Color.stravaOrange)
-                
-                Text("SportBoard")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("Tu dashboard de entrenamiento")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            
-            Spacer()
-            
-            // Botón de conectar
-            VStack(spacing: 16) {
+        ZStack {
+            VStack(spacing: 34) {
+                Spacer(minLength: 40)
+
+                hero
+
+                VStack(spacing: 12) {
+                    FeaturePill(icon: "chart.line.uptrend.xyaxis", title: "Analiza carga, ritmo y progreso")
+                    FeaturePill(icon: "brain.head.profile", title: "Insights claros para entrenar mejor")
+                    FeaturePill(icon: "arrow.triangle.2.circlepath", title: "Sincronización directa con Strava")
+                }
+
+                Spacer(minLength: 20)
+
                 Button {
                     connectWithStrava()
                 } label: {
@@ -42,31 +34,26 @@ struct LoginView: View {
                             .font(.title3)
                         
                         Text("Conectar con Strava")
-                            .fontWeight(.semibold)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.stravaOrange)
-                    .foregroundColor(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
+                .buttonStyle(PremiumPrimaryButtonStyle())
                 .disabled(authService.isLoading)
                 
                 if authService.isLoading {
                     ProgressView()
                         .progressViewStyle(.circular)
+                        .tint(.white)
                 }
                 
                 Text("Necesitas una cuenta de Strava para usar esta app")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(SportBoardTheme.Palette.dimText)
                     .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, 32)
-            
-            Spacer()
-                .frame(height: 60)
+            .padding(.horizontal, SportBoardTheme.Spacing.screen)
+            .padding(.bottom, 44)
         }
+        .premiumScreenBackground()
         .alert("Error de Autenticación", isPresented: $showError) {
             Button("OK") {
                 authService.error = nil
@@ -76,6 +63,42 @@ struct LoginView: View {
         }
         .onChange(of: authService.error) { _, newError in
             showError = newError != nil
+        }
+    }
+
+    private var hero: some View {
+        VStack(spacing: 20) {
+            ZStack {
+                Circle()
+                    .fill(SportBoardTheme.Palette.glow)
+                    .frame(width: 168, height: 168)
+                    .blur(radius: 24)
+
+                RoundedRectangle(cornerRadius: 42, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .frame(width: 142, height: 142)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 42, style: .continuous)
+                            .stroke(SportBoardTheme.Palette.hairlineStrong, lineWidth: 1)
+                    }
+
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 82, weight: .bold))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, SportBoardTheme.Palette.accent)
+            }
+
+            VStack(spacing: 10) {
+                Text("SportBoard")
+                    .font(.system(size: 44, weight: .black, design: .rounded))
+                    .tracking(0.8)
+
+                Text("Tu centro de mando para entrenar con intención.")
+                    .font(.headline)
+                    .foregroundStyle(SportBoardTheme.Palette.mutedText)
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(.white)
         }
     }
     
@@ -88,6 +111,27 @@ struct LoginView: View {
                 print("Auth error: \(error)")
             }
         }
+    }
+}
+
+private struct FeaturePill: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(SportBoardTheme.Palette.accent)
+                .frame(width: 24)
+
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(SportBoardTheme.Palette.mutedText)
+
+            Spacer()
+        }
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14)
     }
 }
 

@@ -22,10 +22,11 @@ struct ActivityListView: View {
                     // Búsqueda
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(SportBoardTheme.Palette.dimText)
                         
                         TextField("Buscar actividades...", text: $viewModel.searchText)
                             .textFieldStyle(.plain)
+                            .foregroundStyle(.white)
                         
                         if !viewModel.searchText.isEmpty {
                             Button {
@@ -36,16 +37,14 @@ struct ActivityListView: View {
                             }
                         }
                     }
-                    .padding(10)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 12)
                     .padding(.horizontal)
                     
                     // Filtros rápidos
                     QuickFilterChips(viewModel: viewModel)
                 }
                 .padding(.vertical, 8)
-                .background(Color(.systemBackground))
+                .background(SportBoardTheme.Palette.backgroundTop.opacity(0.92))
                 
                 // Lista de actividades
                 if viewModel.filteredActivities.isEmpty {
@@ -64,6 +63,7 @@ struct ActivityListView: View {
                             }
                         }
                     }
+                    .foregroundStyle(.white)
                 } else {
                     List {
                         ForEach(groupedActivities, id: \.key) { month, activities in
@@ -72,18 +72,24 @@ struct ActivityListView: View {
                                     NavigationLink(value: activity) {
                                         ActivityRowView(activity: activity)
                                     }
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
                                 }
                             } header: {
                                 Text(month)
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
+                                    .font(.headline.weight(.bold))
+                                    .foregroundStyle(.white)
                             }
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
             .navigationTitle("Actividades")
+            .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .premiumScreenBackground()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -117,6 +123,7 @@ struct ActivityListView: View {
             }
             .sheet(isPresented: $showFilters) {
                 ActivityFilterView(viewModel: viewModel)
+                    .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
             }
             .onAppear {
                 viewModel.configure(modelContext: modelContext)

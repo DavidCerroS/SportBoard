@@ -173,24 +173,24 @@ extension Int {
 // MARK: - Color Extensions
 
 extension Color {
-    static let stravaOrange = Color(red: 252/255, green: 82/255, blue: 0/255)
+    static let stravaOrange = SportBoardTheme.Palette.accent
     
     static func sportColor(for sportType: String) -> Color {
         switch sportType.lowercased() {
         case "run", "virtualrun", "trailrun":
-            return .orange
+            return SportBoardTheme.Palette.accent
         case "ride", "virtualride", "mountainbikeride", "gravelride", "ebikeride":
-            return .blue
+            return SportBoardTheme.Palette.electricBlue
         case "swim":
-            return .cyan
+            return SportBoardTheme.Palette.aqua
         case "walk", "hike":
-            return .green
+            return SportBoardTheme.Palette.success
         case "workout", "weighttraining", "crossfit":
-            return .purple
+            return SportBoardTheme.Palette.violet
         case "yoga", "pilates":
             return .pink
         default:
-            return .gray
+            return SportBoardTheme.Palette.dimText
         }
     }
 }

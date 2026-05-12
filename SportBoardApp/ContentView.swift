@@ -43,28 +43,32 @@ struct MainTabView: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            Tab("Dashboard", systemImage: "chart.bar.xaxis", value: 0) {
+            Tab("Inicio", systemImage: "sparkles.rectangle.stack", value: 0) {
                 DashboardView(
                     viewModel: dashboardViewModel,
                     syncViewModel: syncViewModel
                 )
             }
             
-            Tab("Inteligencia", systemImage: "brain.head.profile", value: 1) {
+            Tab("Insights", systemImage: "brain.head.profile", value: 1) {
                 IntelligenceView(viewModel: dashboardViewModel)
             }
             
-            Tab("Comparar", systemImage: "arrow.left.arrow.right.circle", value: 2) {
+            Tab("Actividades", systemImage: "figure.run", value: 2) {
+                ActivityListView(viewModel: activitiesViewModel)
+            }
+
+            Tab("Comparar", systemImage: "rectangle.split.2x1", value: 3) {
                 NavigationStack {
                     ActivityComparisonView()
                 }
             }
-
-            Tab("Actividades", systemImage: "figure.run", value: 3) {
-                ActivityListView(viewModel: activitiesViewModel)
-            }
         }
         .tint(Color.stravaOrange)
+        .toolbarBackground(SportBoardTheme.Palette.backgroundBottom, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
+        .preferredColorScheme(.dark)
+        .premiumScreenBackground()
     }
 }
 

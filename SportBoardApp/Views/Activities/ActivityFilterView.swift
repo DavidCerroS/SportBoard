@@ -77,8 +77,12 @@ struct ActivityFilterView: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .premiumScreenBackground()
             .navigationTitle("Filtros")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Aplicar") {
@@ -154,11 +158,7 @@ struct FilterChip: View {
                     .font(.caption)
                     .fontWeight(.medium)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isSelected ? color : Color(.secondarySystemBackground))
-            .foregroundColor(isSelected ? .white : .primary)
-            .clipShape(Capsule())
+            .premiumPill(isSelected: isSelected, color: color)
         }
         .buttonStyle(.plain)
     }

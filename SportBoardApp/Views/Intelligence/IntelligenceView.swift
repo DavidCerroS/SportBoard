@@ -16,6 +16,8 @@ struct IntelligenceView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    intelligenceHero
+
                     // Alertas silenciosas
                     if !viewModel.silentAlerts.isEmpty {
                         sectionHeader("Avisos")
@@ -116,25 +118,17 @@ struct IntelligenceView: View {
                     sectionHeader("Herramientas")
                     VStack(spacing: 12) {
                         NavigationLink(value: "activityComparator") {
-                            Label("Comparar entrenos", systemImage: "arrow.left.arrow.right.circle")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            toolRow("Comparar entrenos", icon: "arrow.left.arrow.right.circle")
                         }
                         NavigationLink(value: "weekComparator") {
-                            Label("Comparar semanas", systemImage: "calendar.badge.clock")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            toolRow("Comparar semanas", icon: "calendar.badge.clock")
                         }
                         NavigationLink(value: "simulator") {
-                            Label("Simulador", systemImage: "slider.horizontal.3")
-                                .font(.subheadline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            toolRow("Simulador", icon: "slider.horizontal.3")
                         }
                     }
-                    .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .premiumCard(accent: SportBoardTheme.Palette.violet.opacity(0.5))
                     
                     // Si no hay nada que mostrar
                     if viewModel.silentAlerts.isEmpty
@@ -145,15 +139,20 @@ struct IntelligenceView: View {
                         && (viewModel.suspiciousPeak?.detected != true) {
                         Text("Sincroniza actividades de carrera para ver insights.")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(SportBoardTheme.Palette.mutedText)
                             .multilineTextAlignment(.center)
                             .padding(.vertical, 40)
+                            .frame(maxWidth: .infinity)
+                            .premiumCard()
                     }
                 }
                 .padding()
             }
-            .navigationTitle("Inteligencia")
+            .premiumScreenBackground()
+            .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
                 viewModel.loadStats()
             }
@@ -172,24 +171,61 @@ struct IntelligenceView: View {
             }
         }
     }
+
+    private var intelligenceHero: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(SportBoardTheme.Palette.violet)
+                .frame(width: 58, height: 58)
+                .background(SportBoardTheme.Palette.violet.opacity(0.15), in: Circle())
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Inteligencia de entrenamiento")
+                    .font(.title2.weight(.black))
+                    .foregroundStyle(.white)
+
+                Text("Alertas, fatiga y recomendaciones explicadas sin ruido.")
+                    .font(.subheadline)
+                    .foregroundStyle(SportBoardTheme.Palette.mutedText)
+            }
+
+            Spacer()
+        }
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.large, accent: SportBoardTheme.Palette.violet, isElevated: true)
+    }
     
     private func sectionHeader(_ title: String) -> some View {
         Text(title)
-            .font(.headline)
+            .font(.title3.weight(.bold))
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func toolRow(_ title: String, icon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(SportBoardTheme.Palette.accent)
+                .frame(width: 28)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(SportBoardTheme.Palette.dimText)
+        }
+        .padding(.vertical, 8)
     }
     
     @ViewBuilder
     private func card<Content: View>(accent: Bool = false, accentOrange: Bool = false, @ViewBuilder content: () -> Content) -> some View {
         content()
-            .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                accent ? Color.stravaOrange.opacity(0.1) :
-                accentOrange ? Color.orange.opacity(0.1) :
-                Color(.secondarySystemBackground)
+            .premiumCard(
+                cornerRadius: SportBoardTheme.Radius.medium,
+                accent: accent ? Color.stravaOrange : (accentOrange ? SportBoardTheme.Palette.warning : nil)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 }
 

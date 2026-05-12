@@ -32,7 +32,7 @@ struct PostActivityReflectionView: View {
                                 } label: {
                                     Text("\(n)")
                                         .frame(width: 44, height: 44)
-                                        .background(feelingScore == n ? Color.stravaOrange.opacity(0.3) : Color(.secondarySystemBackground))
+                                        .background(feelingScore == n ? Color.stravaOrange.opacity(0.32) : Color.white.opacity(0.08))
                                         .clipShape(Circle())
                                 }
                                 .buttonStyle(.plain)
@@ -54,8 +54,12 @@ struct PostActivityReflectionView: View {
                     Text("Reflexión")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .premiumScreenBackground()
             .navigationTitle("Reflexión post-entreno")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancelar") { dismiss() }

@@ -49,8 +49,12 @@ struct SimulatorView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .premiumScreenBackground()
         .navigationTitle("Simulador")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .onAppear {
             loadCurrentMetrics()
         }

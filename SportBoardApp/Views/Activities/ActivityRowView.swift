@@ -28,6 +28,7 @@ struct ActivityRowView: View {
                 Text(activity.name)
                     .font(.headline)
                     .lineLimit(1)
+                    .foregroundStyle(.white)
                 
                 HStack(spacing: 8) {
                     Text(activity.sportType.sportDisplayName)
@@ -50,6 +51,7 @@ struct ActivityRowView: View {
                 Text(activity.formattedDistance)
                     .font(.subheadline)
                     .fontWeight(.semibold)
+                    .foregroundStyle(.white)
                 
                 HStack(spacing: 4) {
                     Image(systemName: "clock")
@@ -60,7 +62,7 @@ struct ActivityRowView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 8)
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14, accent: Color.sportColor(for: activity.sportType).opacity(0.45))
     }
 }
 
@@ -78,6 +80,7 @@ struct ActivityRowCompactView: View {
                 Text(activity.name)
                     .font(.subheadline)
                     .lineLimit(1)
+                    .foregroundStyle(.white)
                 
                 Text(activity.startDate.shortDateString)
                     .font(.caption2)
@@ -89,7 +92,9 @@ struct ActivityRowCompactView: View {
             Text(activity.formattedDistance)
                 .font(.caption)
                 .fontWeight(.medium)
+                .foregroundStyle(.white)
         }
+        .padding(.vertical, 4)
     }
 }
 

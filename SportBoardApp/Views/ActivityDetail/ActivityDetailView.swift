@@ -68,9 +68,7 @@ struct ActivityDetailView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, accent: SportBoardTheme.Palette.warning)
                     }
                 }
 
@@ -97,9 +95,7 @@ struct ActivityDetailView: View {
                         } label: {
                             Label("Ver kilómetros", systemImage: "ruler")
                         }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
                     }
 
                     // Si aún no se han cargado los detalles, mostrar mensaje
@@ -120,6 +116,9 @@ struct ActivityDetailView: View {
         }
         .navigationTitle(activity.name)
         .navigationBarTitleDisplayMode(.inline)
+        .premiumScreenBackground()
+        .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ExportMenuView(viewModel: viewModel)
@@ -148,6 +147,7 @@ struct ActivityDetailView: View {
         }
         .sheet(isPresented: $showReflectionSheet) {
             PostActivityReflectionView(activity: activity)
+                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
         }
         .alert("JSON Copiado", isPresented: $viewModel.showCopiedAlert) {
             Button("OK") {}
@@ -172,9 +172,7 @@ struct ActivityDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 30)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 24)
     }
 
     private func errorSection(_ error: String) -> some View {
@@ -195,9 +193,7 @@ struct ActivityDetailView: View {
             .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 22, accent: SportBoardTheme.Palette.warning)
     }
 
     private var noDetailsSection: some View {
@@ -210,9 +206,7 @@ struct ActivityDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 20)
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 22)
     }
 
     // MARK: - Sections
@@ -245,9 +239,7 @@ struct ActivityDetailView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.large, accent: Color.sportColor(for: activity.sportType), isElevated: true)
     }
 
     private var statsGrid: some View {
@@ -323,9 +315,7 @@ struct ActivityDetailView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
     }
 
     private var additionalInfoSection: some View {
@@ -394,9 +384,7 @@ struct ActivityDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
     }
 }
 
@@ -430,9 +418,7 @@ struct StatItemView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14, accent: color.opacity(0.5))
     }
 }
 

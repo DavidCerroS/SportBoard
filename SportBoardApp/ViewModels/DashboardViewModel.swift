@@ -20,6 +20,10 @@ final class DashboardViewModel {
     var thisWeekDistance: Double = 0
     var thisWeekTime: Int = 0
     var thisWeekActivities: Int = 0
+    var thisWeekAverageHeartrate: Double?
+    var thisWeekAveragePower: Double?
+    /// Carreras de esta semana (calendario Madrid), orden ascendente por fecha para listados «Sesión 1…»
+    var thisWeekRunsSorted: [Activity] = []
     
     var thisMonthDistance: Double = 0
     var thisMonthTime: Int = 0
@@ -85,9 +89,18 @@ final class DashboardViewModel {
                     && act.startDate >= weekStart
                     && act.startDate < weekEnd
             }
+            thisWeekRunsSorted = thisWeekRuns.sorted { $0.startDate < $1.startDate }
             self.thisWeekActivities = thisWeekRuns.count
             thisWeekDistance = thisWeekRuns.reduce(0) { $0 + $1.distance }
             thisWeekTime = thisWeekRuns.reduce(0) { $0 + $1.movingTime }
+            let thisWeekRunsWithHR = thisWeekRuns.compactMap(\.averageHeartrate)
+            thisWeekAverageHeartrate = thisWeekRunsWithHR.isEmpty
+                ? nil
+                : thisWeekRunsWithHR.reduce(0, +) / Double(thisWeekRunsWithHR.count)
+            let thisWeekRunsWithPower = thisWeekRuns.compactMap(\.averageWatts)
+            thisWeekAveragePower = thisWeekRunsWithPower.isEmpty
+                ? nil
+                : thisWeekRunsWithPower.reduce(0, +) / Double(thisWeekRunsWithPower.count)
             #if DEBUG
             let df = ISO8601DateFormatter()
             df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -217,6 +230,22 @@ final class DashboardViewModel {
     
     var formattedThisWeekDistance: String {
         thisWeekDistance.formattedDistanceKm
+    }
+
+    var formattedThisWeekTime: String {
+        TimeInterval(thisWeekTime).formattedHoursMinutes
+    }
+
+    var formattedThisWeekAverageHeartrate: String? {
+        thisWeekAverageHeartrate?.formattedHeartRate
+    }
+
+    var formattedThisWeekAveragePower: String? {
+        thisWeekAveragePower?.formattedPower
+    }
+
+    var formattedCurrentLegFatigue: String? {
+        fatigueDiagnosis?.formattedScorePercent
     }
     
     var formattedThisMonthDistance: String {

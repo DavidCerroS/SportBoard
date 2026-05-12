@@ -78,8 +78,12 @@ struct WeekComparatorView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .premiumScreenBackground()
         .navigationTitle("Comparar semanas")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .onAppear {
             loadData()
         }

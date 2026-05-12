@@ -42,9 +42,7 @@ struct SplitsTableView: View {
                 SplitRowView(split: split, sportType: sportType, fastestPace: fastestPace, slowestPace: slowestPace)
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
     }
     
     private var fastestPace: Double {
@@ -102,7 +100,7 @@ struct SplitRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(split.splitIndex % 2 == 0 ? Color.clear : Color(.tertiarySystemBackground))
+        .background(split.splitIndex % 2 == 0 ? Color.clear : Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
     

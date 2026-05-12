@@ -63,8 +63,12 @@ struct ActivityComparisonView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .premiumScreenBackground()
         .navigationTitle("Comparar entrenos")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .onAppear(perform: loadActivities)
         .refreshable {
             loadActivities()
@@ -236,7 +240,7 @@ private struct ActivityComparisonSelectionCard: View {
             .font(.caption)
             .foregroundStyle(.secondary)
         }
-        .padding(.vertical, 4)
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14, accent: SportBoardTheme.Palette.accent.opacity(0.45))
     }
 }
 

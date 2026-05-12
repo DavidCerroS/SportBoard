@@ -86,10 +86,8 @@ struct SyncProgressView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                        .padding()
                         .frame(maxWidth: .infinity)
-                        .background(Color.orange.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, accent: SportBoardTheme.Palette.warning)
                     }
                     
                     // Año actual
@@ -174,11 +172,9 @@ struct SyncProgressView: View {
                 }
             }
         }
-        .padding(24)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(radius: 10)
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.large, padding: 24, accent: phaseColor.opacity(0.55), isElevated: true)
         .padding()
+        .premiumScreenBackground()
     }
     
     private var phaseColor: Color {
@@ -267,9 +263,11 @@ struct SyncProgressCompactView: View {
                 }
             }
         }
-        .padding()
-        .background(viewModel.progress.isRateLimited ? Color.orange.opacity(0.1) : Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(
+            cornerRadius: SportBoardTheme.Radius.medium,
+            padding: 14,
+            accent: viewModel.progress.isRateLimited ? SportBoardTheme.Palette.warning : Color.stravaOrange.opacity(0.45)
+        )
     }
 }
 

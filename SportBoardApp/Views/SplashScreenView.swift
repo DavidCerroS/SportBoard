@@ -113,24 +113,16 @@ struct SplashScreenView: View {
 
     private var background: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Color(red: 0.05, green: 0.06, blue: 0.09),
-                    Color(red: 0.10, green: 0.08, blue: 0.06),
-                    Color.stravaOrange.opacity(0.9)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            SportBoardTheme.backgroundGradient
 
             Circle()
-                .fill(Color.stravaOrange.opacity(0.36))
+                .fill(SportBoardTheme.Palette.accent.opacity(0.36))
                 .frame(width: 320, height: 320)
                 .blur(radius: 72)
                 .offset(x: isAnimated ? -120 : -84, y: isAnimated ? -250 : -210)
 
             Circle()
-                .fill(Color.white.opacity(0.18))
+                .fill(SportBoardTheme.Palette.electricBlue.opacity(0.24))
                 .frame(width: 220, height: 220)
                 .blur(radius: 64)
                 .offset(x: isAnimated ? 130 : 92, y: isAnimated ? 215 : 260)
@@ -170,14 +162,14 @@ struct SplashScreenView: View {
                 .frame(width: 148, height: 148)
                 .overlay {
                     Circle()
-                        .stroke(.white.opacity(0.28), lineWidth: 1)
+                        .stroke(SportBoardTheme.Palette.hairlineStrong, lineWidth: 1)
                 }
                 .shadow(color: .black.opacity(0.3), radius: 24, y: 18)
 
             Image(systemName: "figure.run.circle.fill")
                 .font(.system(size: 86, weight: .bold))
                 .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, Color.stravaOrange)
+                .foregroundStyle(.white, SportBoardTheme.Palette.accent)
                 .scaleEffect(isAnimated ? 1.04 : 0.96)
         }
         .frame(width: 250, height: 250)
@@ -190,13 +182,7 @@ struct SplashScreenView: View {
                     .font(.caption.weight(.heavy))
                     .tracking(1.2)
                     .foregroundStyle(.white)
-                    .padding(.vertical, 9)
-                    .padding(.horizontal, 13)
-                    .background(.white.opacity(0.13), in: Capsule())
-                    .overlay {
-                        Capsule()
-                            .stroke(.white.opacity(0.18), lineWidth: 1)
-                    }
+                    .premiumPill(color: SportBoardTheme.Palette.accent)
             }
         }
     }

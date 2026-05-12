@@ -42,9 +42,7 @@ struct LapsTableView: View {
                 LapRowView(lap: lap, sportType: sportType)
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
     }
 }
 
@@ -90,7 +88,7 @@ struct LapRowView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(lap.lapIndex % 2 == 0 ? Color.clear : Color(.tertiarySystemBackground))
+        .background(lap.lapIndex % 2 == 0 ? Color.clear : Color.white.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
