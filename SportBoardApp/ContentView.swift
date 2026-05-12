@@ -54,7 +54,13 @@ struct MainTabView: View {
                 IntelligenceView(viewModel: dashboardViewModel)
             }
             
-            Tab("Actividades", systemImage: "figure.run", value: 2) {
+            Tab("Comparar", systemImage: "arrow.left.arrow.right.circle", value: 2) {
+                NavigationStack {
+                    ActivityComparisonView()
+                }
+            }
+
+            Tab("Actividades", systemImage: "figure.run", value: 3) {
                 ActivityListView(viewModel: activitiesViewModel)
             }
         }

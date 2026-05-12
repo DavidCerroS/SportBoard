@@ -11,8 +11,10 @@ import SwiftData
 struct ActivityComparisonView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var activities: [Activity] = []
+    @State private var allActivities: [Activity] = []
     @State private var selectedFirstID: Int64?
     @State private var selectedSecondID: Int64?
+    @State private var distanceFilter: DistanceFilter = .all
 
     init(initialFirstActivityID: Int64? = nil) {
         self._selectedFirstID = State(initialValue: initialFirstActivityID)
@@ -50,6 +52,7 @@ struct ActivityComparisonView: View {
                     )
                 }
             } else {
+                filterSection
                 selectionSection
 
                 if let comparison {
@@ -68,6 +71,20 @@ struct ActivityComparisonView: View {
         .onAppear(perform: loadActivities)
         .refreshable {
             loadActivities()
+        }
+    }
+
+    private var filterSection: some View {
+        Section("Filtro rápido") {
+            Picker("Distancia", selection: $distanceFilter) {
+                ForEach(DistanceFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: distanceFilter) { _, newValue in
+                applyFilters(using: newValue)
+            }
         }
     }
 
@@ -178,7 +195,12 @@ struct ActivityComparisonView: View {
         )
         descriptor.fetchLimit = 500
         let fetched = (try? modelContext.fetch(descriptor)) ?? []
-        activities = ActivityComparisonService.sortedComparableActivities(from: fetched)
+        allActivities = ActivityComparisonService.sortedComparableActivities(from: fetched)
+        applyFilters(using: distanceFilter)
+    }
+
+    private func applyFilters(using filter: DistanceFilter) {
+        activities = allActivities.filter { filter.matches($0) }
 
         if selectedFirstID == nil || activity(for: selectedFirstID) == nil {
             selectedFirstID = activities.first?.id
@@ -195,6 +217,42 @@ struct ActivityComparisonView: View {
 
     private func selectionLabel(for activity: Activity) -> String {
         "\(Self.activityDateFormatter.string(from: activity.startDate)) · \(activity.name) · \(activity.formattedDistance)"
+    }
+}
+
+private enum DistanceFilter: CaseIterable, Identifiable {
+    case all
+    case fiveK
+    case tenK
+    case halfMarathon
+    case longRun
+
+    var id: String { title }
+
+    var title: String {
+        switch self {
+        case .all: return "Todas"
+        case .fiveK: return "5K"
+        case .tenK: return "10K"
+        case .halfMarathon: return "21K"
+        case .longRun: return "Larga"
+        }
+    }
+
+    func matches(_ activity: Activity) -> Bool {
+        let km = activity.distance / 1_000
+        switch self {
+        case .all:
+            return true
+        case .fiveK:
+            return (4.5...5.5).contains(km)
+        case .tenK:
+            return (9.0...11.0).contains(km)
+        case .halfMarathon:
+            return (20.0...22.5).contains(km)
+        case .longRun:
+            return km >= 14.0
+        }
     }
 }
 
