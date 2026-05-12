@@ -80,6 +80,19 @@ struct ActivityComparisonService {
             .sorted { $0.startDate > $1.startDate }
     }
 
+    static func defaultSelectionIDs(
+        in activities: [Activity],
+        currentFirstID: Int64?,
+        currentSecondID: Int64?
+    ) -> (firstID: Int64?, secondID: Int64?) {
+        let activityIDs = Set(activities.map(\.id))
+        let firstID = currentFirstID.flatMap { activityIDs.contains($0) ? $0 : nil } ?? activities.first?.id
+        let secondID = currentSecondID.flatMap { activityIDs.contains($0) && $0 != firstID ? $0 : nil }
+            ?? activities.first { $0.id != firstID }?.id
+
+        return (firstID, secondID)
+    }
+
     static func compare(_ first: Activity, _ second: Activity) -> ActivityComparison {
         let firstType = RunClassifier.classify(
             activity: first,

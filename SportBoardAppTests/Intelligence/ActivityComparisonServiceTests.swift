@@ -9,6 +9,24 @@ import XCTest
 @testable import SportBoardApp
 
 final class ActivityComparisonServiceTests: XCTestCase {
+    func testDefaultSelectionUsesAllComparableRunsWhenPreviousSelectionIsUnavailable() {
+        let recentTenK = makeRun(id: 3, distance: 10_000)
+        let olderFiveK = makeRun(id: 2, distance: 5_000)
+        let ride = makeRun(id: 1, distance: 21_100)
+        ride.sportType = "Ride"
+
+        let activities = ActivityComparisonService.sortedComparableActivities(from: [olderFiveK, ride, recentTenK])
+        let selection = ActivityComparisonService.defaultSelectionIDs(
+            in: activities,
+            currentFirstID: 99,
+            currentSecondID: 100
+        )
+
+        XCTAssertEqual(activities.map(\.id), [3, 2])
+        XCTAssertEqual(selection.firstID, 3)
+        XCTAssertEqual(selection.secondID, 2)
+    }
+
     func testCompareReportsAveragePaceDifferenceInSecondsPerKm() {
         let first = makeRun(id: 1, distance: 10_000, movingTime: 3_000, averageSpeed: 1000.0 / 300.0)
         let second = makeRun(id: 2, distance: 10_000, movingTime: 2_850, averageSpeed: 1000.0 / 285.0)
