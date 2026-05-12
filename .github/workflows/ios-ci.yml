@@ -8,16 +8,36 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 35
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Create CI Constants if missing
+        run: |
+          if [ ! -f SportBoardApp/Utilities/Constants.swift ]; then
+            echo "Creating dummy Constants.swift for CI"
+            mkdir -p SportBoardApp/Utilities
+            cat <<EOF > SportBoardApp/Utilities/Constants.swift
+          enum Constants {
+            static let stravaClientId = ""
+            static let stravaClientSecret = ""
+            static let redirectURI = ""
+            static let apiBaseURL = "https://example.com"
+           }
+          EOF
+            else
+              echo "Constants.swift already exists, skipping creation"
+            fi
+
       - name: Build and test
         run: |
           xcodebuild test \
-            -project *.xcodeproj \
-            -scheme $(xcodebuild -list -json | ruby -rjson -e 'j=JSON.parse(STDIN.read); puts j["project"]["schemes"].first') \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -project SportBoardApp.xcodeproj \
+            -scheme SportBoardApp \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             CODE_SIGNING_ALLOWED=NO
