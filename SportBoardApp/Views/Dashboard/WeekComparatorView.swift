@@ -97,7 +97,7 @@ struct WeekComparatorView: View {
         if current.sessionCount >= 1 {
             past.insert(current, at: 0)
         }
-        availableWeeks = past
+        availableWeeks = WeekComparatorService.sortedUniqueWeekSummariesForSelection(past)
         selectedWeekA = availableWeeks.first
         selectedWeekB = availableWeeks.dropFirst().first
         recomputeComparison()

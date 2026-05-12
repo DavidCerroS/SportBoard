@@ -44,6 +44,16 @@ struct WeekComparatorService {
     private static let volumeTolerance = 0.15
     private static let easyRatioTolerance = 0.12
     private static let maxWeeksToSearch = 52
+
+    static func sortedUniqueWeekSummariesForSelection(_ summaries: [WeekSummary]) -> [WeekSummary] {
+        var seenWeekStarts = Set<Date>()
+
+        return summaries
+            .sorted { $0.weekStart > $1.weekStart }
+            .filter { summary in
+                seenWeekStarts.insert(summary.weekStart).inserted
+            }
+    }
     
     /// Obtiene el resumen de la semana que contiene la fecha dada (Europe/Madrid, Lunes).
     static func weekSummary(
@@ -155,7 +165,7 @@ struct WeekComparatorService {
         calendar: Calendar = Calendar.sportBoardMadrid
     ) throws -> [WeekSummary] {
         var descriptor = FetchDescriptor<Activity>(
-            sortBy: [SortDescriptor(\.startDate, order: .forward)]
+            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
         )
         descriptor.fetchLimit = 500
         let all = try modelContext.fetch(descriptor)
@@ -166,10 +176,12 @@ struct WeekComparatorService {
         let sortedWeeks = byWeek.keys.sorted(by: >)
         let weeksToTake = Array(sortedWeeks.prefix(upToWeeks))
         
-        return weeksToTake.compactMap { weekStart in
+        let summaries: [WeekSummary] = weeksToTake.compactMap { weekStart in
             let acts = byWeek[weekStart] ?? []
             guard !acts.isEmpty else { return nil }
             return weekSummary(for: weekStart, activities: runs, profile: profile, calendar: calendar)
         }
+
+        return sortedUniqueWeekSummariesForSelection(summaries)
     }
 }
