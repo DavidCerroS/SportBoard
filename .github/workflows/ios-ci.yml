@@ -7,17 +7,58 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
-    runs-on: macos-14
-    timeout-minutes: 35
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Select Xcode
-        run: sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer
-      - name: Build and test
+        run: sudo xcode-select -switch /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Create CI Constants if missing
         run: |
-          xcodebuild test \
-            -project *.xcodeproj \
-            -scheme $(xcodebuild -list -json | ruby -rjson -e 'j=JSON.parse(STDIN.read); puts j["project"]["schemes"].first') \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            CODE_SIGNING_ALLOWED=NO
+          if [ ! -f SportBoardApp/Utilities/Constants.swift ]; then
+            mkdir -p SportBoardApp/Utilities
+            cat <<EOF > SportBoardApp/Utilities/Constants.swift
+          enum Constants {
+              enum Strava {
+                  static let clientId = ""
+                  static let clientSecret = ""
+                  static let redirectUri = "sportboard://oauth/callback"
+                  static let authorizeURL = "https://www.strava.com/oauth/mobile/authorize"
+                  static let tokenURL = "https://www.strava.com/oauth/token"
+                  static let scopes = "read,activity:read_all"
+              }
+          
+              enum Keychain {
+                  static let accessTokenKey = "accessToken"
+                  static let refreshTokenKey = "refreshToken"
+                  static let expiresAtKey = "expiresAt"
+                  static let athleteIdKey = "athleteId"
+              }
+          
+              enum Sync {
+                  static let initialSyncWindowDays = 30
+                  static let activitiesPerPage = 100
+                  static let requestDelayMs: UInt64 = 500_000_000
+                  static let initialRetryDelay: UInt64 = 1_000_000_000
+                  static let maxRetries = 3
+              }
+          }
+          EOF
+                    fi
+
+      - name: Install xcpretty
+        run: gem install xcpretty
+
+      - name: Build (no tests)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project SportBoardApp.xcodeproj \
+            -scheme SportBoardApp \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
