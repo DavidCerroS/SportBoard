@@ -71,7 +71,7 @@ struct PostActivityReflectionView: View {
                     }
                 }
             }
-            .onAppear {
+            .task {
                 loadExistingReflection()
             }
         }

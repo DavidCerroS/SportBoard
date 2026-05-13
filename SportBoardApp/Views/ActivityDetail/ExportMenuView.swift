@@ -9,8 +9,7 @@ import SwiftUI
 
 struct ExportMenuView: View {
     @Bindable var viewModel: ActivityDetailViewModel
-    @State private var showShareSheet = false
-    @State private var exportURL: URL?
+    @State private var shareExport: ShareExport?
     
     var body: some View {
         Menu {
@@ -22,8 +21,7 @@ struct ExportMenuView: View {
             
             Button {
                 if let url = viewModel.exportJSONToFile() {
-                    exportURL = url
-                    showShareSheet = true
+                    shareExport = ShareExport(url: url)
                 }
             } label: {
                 Label("Descargar archivo JSON", systemImage: "arrow.down.doc")
@@ -31,12 +29,16 @@ struct ExportMenuView: View {
         } label: {
             Label("Exportar", systemImage: "square.and.arrow.up")
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = exportURL {
-                ShareSheet(items: [url])
-            }
+        .sheet(item: $shareExport) { export in
+            ShareSheet(items: [export.url])
         }
     }
+}
+
+private struct ShareExport: Identifiable {
+    let url: URL
+
+    var id: URL { url }
 }
 
 // MARK: - Share Sheet

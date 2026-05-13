@@ -12,7 +12,7 @@ struct ActivityDetailView: View {
     let activity: Activity
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: ActivityDetailViewModel
-    @State private var showReflectionSheet = false
+    @State private var activeSheet: ActivityDetailSheet?
 
     private var isRun: Bool {
         ["run", "virtualrun", "trailrun"].contains(activity.sportType.lowercased())
@@ -134,7 +134,7 @@ struct ActivityDetailView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showReflectionSheet = true
+                        activeSheet = .reflection
                     } label: {
                         Label("Reflexión", systemImage: "text.bubble")
                     }
@@ -145,9 +145,12 @@ struct ActivityDetailView: View {
             await viewModel.loadDetailsIfNeeded(context: modelContext)
             viewModel.loadIntelligence(context: modelContext)
         }
-        .sheet(isPresented: $showReflectionSheet) {
-            PostActivityReflectionView(activity: activity)
-                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+        .sheet(item: $activeSheet) { sheet in
+            switch sheet {
+            case .reflection:
+                PostActivityReflectionView(activity: activity)
+                    .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+            }
         }
         .alert("JSON Copiado", isPresented: $viewModel.showCopiedAlert) {
             Button("OK") {}
@@ -386,6 +389,12 @@ struct ActivityDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .premiumCard(cornerRadius: SportBoardTheme.Radius.medium)
     }
+}
+
+private enum ActivityDetailSheet: Hashable, Identifiable {
+    case reflection
+
+    var id: Self { self }
 }
 
 // MARK: - Stat Item View

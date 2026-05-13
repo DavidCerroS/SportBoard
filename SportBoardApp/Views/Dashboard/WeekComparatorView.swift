@@ -84,7 +84,7 @@ struct WeekComparatorView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .onAppear {
+        .task {
             loadData()
         }
     }

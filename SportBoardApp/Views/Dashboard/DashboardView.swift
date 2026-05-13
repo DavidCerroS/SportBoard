@@ -21,8 +21,7 @@ struct DashboardView: View {
     @Bindable var viewModel: DashboardViewModel
     @ObservedObject var syncViewModel: SyncViewModel
     
-    @State private var showSyncSheet = false
-    @State private var showSportFilter = false
+    @State private var activeSheet: DashboardSheet?
     @State private var isLegFatigueExpanded = false
     @State private var expandedHeroMetric: DashboardHeroExpandedMetric?
 
@@ -36,7 +35,7 @@ struct DashboardView: View {
                         expandedHeroMetric: $expandedHeroMetric
                     ) {
                         syncViewModel.startSync()
-                        showSyncSheet = true
+                        activeSheet = .syncProgress
                     }
 
                     VStack(spacing: 20) {
@@ -44,126 +43,11 @@ struct DashboardView: View {
                     if syncViewModel.isActive || syncViewModel.isPaused {
                         SyncProgressCompactView(viewModel: syncViewModel)
                             .onTapGesture {
-                                showSyncSheet = true
+                                activeSheet = .syncProgress
                             }
                     }
-                    
-                    // Filtro de deporte activo
-                    if let filter = viewModel.selectedSportFilter {
-                        HStack {
-                            Image(systemName: filter.sportIcon)
-                                .foregroundStyle(Color.sportColor(for: filter))
-                            
-                            Text("Filtrando por: \(filter.sportDisplayName)")
-                                .font(.subheadline)
-                            
-                            Spacer()
-                            
-                            Button {
-                                viewModel.setSportFilter(nil)
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14, accent: Color.stravaOrange.opacity(0.45))
-                    }
-                    
-                    // Stats principales
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 16) {
-                        StatCard(
-                            title: "Actividades",
-                            value: "\(viewModel.totalActivities)",
-                            icon: "flame.fill",
-                            color: .orange
-                        )
-                        
-                        StatCard(
-                            title: "Distancia Total",
-                            value: viewModel.formattedTotalDistance,
-                            icon: "figure.run",
-                            color: Color.stravaOrange
-                        )
-                        
-                        StatCard(
-                            title: "Tiempo Total",
-                            value: viewModel.formattedTotalTime,
-                            icon: "clock.fill",
-                            color: .blue
-                        )
-                        
-                        StatCard(
-                            title: "Desnivel",
-                            value: viewModel.formattedTotalElevation,
-                            icon: "mountain.2.fill",
-                            color: .green
-                        )
-                        
-                        if let hr = viewModel.averageHeartrate {
-                            StatCard(
-                                title: "FC Media",
-                                value: hr.formattedHeartRate,
-                                icon: "heart.fill",
-                                color: .red
-                            )
-                        }
-                    }
-                    
-                    // Esta semana / Este mes
-                    VStack(spacing: 12) {
-                        LargeStatCard(
-                            title: "Esta Semana",
-                            value: viewModel.formattedThisWeekDistance,
-                            subtitle: "\(viewModel.thisWeekActivities) actividades",
-                            icon: "calendar",
-                            color: Color.stravaOrange
-                        )
-                        
-                        LargeStatCard(
-                            title: "Este Mes",
-                            value: viewModel.formattedThisMonthDistance,
-                            subtitle: "\(viewModel.thisMonthActivities) actividades",
-                            icon: "calendar.badge.clock",
-                            color: .blue
-                        )
-                    }
-                    
-                    // Deportes
-                    if !viewModel.sportTypeCounts.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Por Deporte")
-                                    .font(.title3.weight(.bold))
-                                    .foregroundStyle(.white)
-                                
-                                Spacer()
-                                
-                                Button {
-                                    showSportFilter = true
-                                } label: {
-                                    Text("Filtrar")
-                                        .font(.subheadline.weight(.semibold))
-                                }
-                            }
-                            
-                            ForEach(viewModel.sortedSportTypes.prefix(5), id: \.sport) { item in
-                                SportTypeCard(
-                                    sportType: item.sport,
-                                    count: item.count,
-                                    isSelected: viewModel.selectedSportFilter == item.sport
-                                ) {
-                                    if viewModel.selectedSportFilter == item.sport {
-                                        viewModel.setSportFilter(nil)
-                                    } else {
-                                        viewModel.setSportFilter(item.sport)
-                                    }
-                                }
-                            }
-                        }
-                    }
+
+                    DashboardNextActionSection(viewModel: viewModel)
                     
                     // Actividades recientes
                     if !viewModel.recentActivities.isEmpty {
@@ -199,16 +83,18 @@ struct DashboardView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         syncViewModel.startSync()
-                        showSyncSheet = true
+                        activeSheet = .syncProgress
                     } label: {
                         Image(systemName: "arrow.triangle.2.circlepath")
                     }
+                    .accessibilityLabel("Sincronizar")
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(value: "settings") {
                         Image(systemName: "gearshape")
                     }
+                    .accessibilityLabel("Ajustes")
                 }
             }
             .navigationDestination(for: Activity.self) { activity in
@@ -219,26 +105,17 @@ struct DashboardView: View {
                     SettingsView()
                 }
             }
-            .sheet(isPresented: $showSyncSheet) {
-                SyncProgressView(viewModel: syncViewModel) {
-                    showSyncSheet = false
-                    viewModel.loadStats()
+            .sheet(item: $activeSheet, onDismiss: {
+                viewModel.loadStats()
+            }) { sheet in
+                switch sheet {
+                case .syncProgress:
+                    SyncProgressView(viewModel: syncViewModel)
+                        .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+                        .presentationDetents([.medium])
                 }
-                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
-                .presentationDetents([.medium])
             }
-            .sheet(isPresented: $showSportFilter) {
-                SportFilterSheet(
-                    sportTypes: viewModel.sortedSportTypes,
-                    selectedSport: viewModel.selectedSportFilter
-                ) { sport in
-                    viewModel.setSportFilter(sport)
-                    showSportFilter = false
-                }
-                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
-                .presentationDetents([.medium, .large])
-            }
-            .onAppear {
+            .task {
                 viewModel.configure(modelContext: modelContext)
                 syncViewModel.configure(modelContext: modelContext)
                 viewModel.loadStats()
@@ -248,6 +125,12 @@ struct DashboardView: View {
             }
         }
     }
+}
+
+private enum DashboardSheet: Hashable, Identifiable {
+    case syncProgress
+
+    var id: Self { self }
 }
 
 // MARK: - Dashboard Hero
@@ -658,6 +541,172 @@ struct DashboardHeroView: View {
     }
 }
 
+// MARK: - Next Action
+
+struct DashboardNextActionSection: View {
+    @Bindable var viewModel: DashboardViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Ahora")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(.white)
+
+            if hasActionableContent {
+                if let preparation = viewModel.racePreparation {
+                    DashboardInsightCard(
+                        title: "Próximo entreno",
+                        message: nextWorkoutMessage(for: preparation),
+                        icon: "figure.run.circle.fill",
+                        color: decisionColor(for: preparation.decision)
+                    )
+                } else if let suggestion = viewModel.nextWorkoutSuggestion {
+                    DashboardInsightCard(
+                        title: "Próximo entreno",
+                        message: suggestion.fullText,
+                        icon: "figure.run.circle.fill",
+                        color: SportBoardTheme.Palette.success
+                    )
+                }
+
+                if let readiness = viewModel.trainingReadiness {
+                    DashboardInsightCard(
+                        title: "Estado de carga",
+                        message: readinessMessage(for: readiness),
+                        icon: "gauge.with.dots.needle.67percent",
+                        color: readinessColor(for: readiness)
+                    )
+                }
+
+                if let alert = viewModel.silentAlerts.first {
+                    DashboardInsightCard(
+                        title: alert.title,
+                        message: alert.message,
+                        icon: "exclamationmark.triangle.fill",
+                        color: SportBoardTheme.Palette.warning
+                    )
+                }
+
+                if viewModel.trainingReadiness == nil, let fatigue = viewModel.fatigueDiagnosis {
+                    DashboardInsightCard(
+                        title: "Estado de carga",
+                        message: fatigue.recommendedAction,
+                        icon: "gauge.with.dots.needle.67percent",
+                        color: fatigueColor(for: fatigue)
+                    )
+                } else if let consistency = viewModel.consistencyBreakdown {
+                    DashboardInsightCard(
+                        title: "Consistencia",
+                        message: consistency.reasons.first ?? "Consistencia actual: \(consistency.score)/100.",
+                        icon: "calendar.badge.checkmark",
+                        color: SportBoardTheme.Palette.aqua
+                    )
+                }
+            } else {
+                DashboardInsightCard(
+                    title: "Sin señal suficiente",
+                    message: "Sincroniza actividades de carrera para ver recomendaciones y avisos accionables.",
+                    icon: "waveform.path.ecg",
+                    color: SportBoardTheme.Palette.dimText
+                )
+            }
+        }
+    }
+
+    private var hasActionableContent: Bool {
+        viewModel.racePreparation != nil
+            || viewModel.trainingReadiness != nil
+            || viewModel.nextWorkoutSuggestion != nil
+            || !viewModel.silentAlerts.isEmpty
+            || viewModel.fatigueDiagnosis != nil
+            || viewModel.consistencyBreakdown != nil
+    }
+
+    private func nextWorkoutMessage(for preparation: RacePreparation) -> String {
+        let workout = preparation.todayWorkout ?? preparation.nextWorkout
+        let prefix = workout.map { "\(dayText(for: $0.date)) · \($0.title)" } ?? preparation.decision.title
+        return "\(prefix). \(preparation.decision.recommendation) \(preparation.decision.reason)"
+    }
+
+    private func readinessMessage(for readiness: TrainingReadiness) -> String {
+        let explanation = readiness.explanation.prefix(2).joined(separator: " ")
+        return "Readiness \(readiness.score)/100 · Riesgo \(readiness.riskLevel.title.lowercased()). \(explanation)"
+    }
+
+    private func dayText(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "es_ES")
+        formatter.dateFormat = "EEE d"
+        return formatter.string(from: date)
+    }
+
+    private func decisionColor(for decision: PlanAdjustmentDecision) -> Color {
+        switch decision.severity {
+        case .green:
+            return SportBoardTheme.Palette.success
+        case .blue:
+            return SportBoardTheme.Palette.aqua
+        case .yellow:
+            return SportBoardTheme.Palette.warning
+        case .red:
+            return SportBoardTheme.Palette.danger
+        }
+    }
+
+    private func readinessColor(for readiness: TrainingReadiness) -> Color {
+        switch readiness.riskLevel {
+        case .low:
+            return SportBoardTheme.Palette.success
+        case .moderate:
+            return SportBoardTheme.Palette.warning
+        case .high:
+            return SportBoardTheme.Palette.danger
+        }
+    }
+
+    private func fatigueColor(for diagnosis: FatigueDiagnosis) -> Color {
+        switch diagnosis.state {
+        case .fresh, .normal:
+            return SportBoardTheme.Palette.success
+        case .fatigued:
+            return SportBoardTheme.Palette.warning
+        case .highFatigue:
+            return SportBoardTheme.Palette.danger
+        }
+    }
+}
+
+private struct DashboardInsightCard: View {
+    let title: String
+    let message: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 38, height: 38)
+                .background(color.opacity(0.16), in: Circle())
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(SportBoardTheme.Palette.mutedText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.medium, padding: 14, accent: color.opacity(0.45))
+    }
+}
+
 // MARK: - Recent Activity Row
 
 struct RecentActivityRow: View {
@@ -704,15 +753,18 @@ struct RecentActivityRow: View {
 // MARK: - Sport Filter Sheet
 
 struct SportFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
     let sportTypes: [(sport: String, count: Int)]
     let selectedSport: String?
-    let onSelect: (String?) -> Void
+    let selectSport: (String?) -> Void
     
     var body: some View {
         NavigationStack {
             List {
                 Button {
-                    onSelect(nil)
+                    selectSport(nil)
+                    dismiss()
                 } label: {
                     HStack {
                         Text("Todos los deportes")
@@ -726,7 +778,8 @@ struct SportFilterSheet: View {
                 
                 ForEach(sportTypes, id: \.sport) { item in
                     Button {
-                        onSelect(item.sport)
+                        selectSport(item.sport)
+                        dismiss()
                     } label: {
                         HStack {
                             Image(systemName: item.sport.sportIcon)
@@ -753,121 +806,6 @@ struct SportFilterSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-        }
-    }
-}
-
-// MARK: - Settings View
-
-struct SettingsView: View {
-    @Environment(\.modelContext) private var modelContext
-    @ObservedObject private var authService = AuthService.shared
-    @ObservedObject private var syncService = SyncService.shared
-    @State private var showLogoutAlert = false
-    @State private var showFullSyncAlert = false
-    @State private var showResetAlert = false
-    @State private var activityCount = 0
-    
-    var body: some View {
-        List {
-            Section {
-                // Sincronización completa
-                Button {
-                    showFullSyncAlert = true
-                } label: {
-                    Label("Sincronización Completa", systemImage: "arrow.triangle.2.circlepath.circle")
-                }
-                
-                // Reset y resincronizar
-                Button(role: .destructive) {
-                    showResetAlert = true
-                } label: {
-                    Label("Borrar y Resincronizar Todo", systemImage: "trash.circle")
-                }
-            } header: {
-                Text("Sincronización")
-            } footer: {
-                Text("Usa 'Sincronización Completa' si la sincronización inicial no terminó. 'Borrar y Resincronizar' eliminará todas las actividades locales y las volverá a descargar.")
-            }
-            
-            Section("Datos") {
-                LabeledContent("Actividades sincronizadas", value: "\(activityCount)")
-            }
-            
-            Section("Cuenta") {
-                Button(role: .destructive) {
-                    showLogoutAlert = true
-                } label: {
-                    Label("Cerrar Sesión", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            }
-            
-            Section("Información") {
-                LabeledContent("Versión", value: "1.0.0")
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .premiumScreenBackground()
-        .navigationTitle("Ajustes")
-        .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
-        .onAppear {
-            loadActivityCount()
-        }
-        .alert("Sincronización Completa", isPresented: $showFullSyncAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Sincronizar") {
-                startFullSync()
-            }
-        } message: {
-            Text("Esto descargará todas las actividades históricas que falten. Puede tardar varios minutos y consumir llamadas de API.")
-        }
-        .alert("Borrar y Resincronizar", isPresented: $showResetAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Borrar Todo", role: .destructive) {
-                resetAndResync()
-            }
-        } message: {
-            Text("Se eliminarán todas las actividades sincronizadas y se volverán a descargar desde Strava. ¿Continuar?")
-        }
-        .alert("Cerrar Sesión", isPresented: $showLogoutAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Cerrar Sesión", role: .destructive) {
-                authService.logout()
-            }
-        } message: {
-            Text("¿Estás seguro de que quieres cerrar sesión? Los datos sincronizados se mantendrán.")
-        }
-    }
-    
-    private func loadActivityCount() {
-        let descriptor = FetchDescriptor<Activity>()
-        activityCount = (try? modelContext.fetchCount(descriptor)) ?? 0
-    }
-    
-    private func startFullSync() {
-        syncService.configure(modelContext: modelContext)
-        syncService.startSync(fullSync: true)
-    }
-    
-    private func resetAndResync() {
-        // Borrar todas las actividades
-        do {
-            try modelContext.delete(model: Activity.self)
-            try modelContext.delete(model: ActivityLap.self)
-            try modelContext.delete(model: ActivitySplit.self)
-            try modelContext.delete(model: SyncState.self)
-            try modelContext.delete(model: RunnerProfile.self)
-            try modelContext.delete(model: PostActivityReflection.self)
-            try modelContext.save()
-            
-            activityCount = 0
-            
-            // Iniciar sync completa
-            syncService.configure(modelContext: modelContext)
-            syncService.startSync(fullSync: true)
-        } catch {
-            print("Error resetting data: \(error)")
         }
     }
 }

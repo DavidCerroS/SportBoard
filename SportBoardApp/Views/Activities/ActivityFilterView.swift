@@ -161,6 +161,8 @@ struct FilterChip: View {
             .premiumPill(isSelected: isSelected, color: color)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

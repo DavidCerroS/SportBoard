@@ -12,7 +12,7 @@ struct ActivityListView: View {
     @Environment(\.modelContext) private var modelContext
     @Bindable var viewModel: ActivitiesViewModel
     
-    @State private var showFilters = false
+    @State private var activeSheet: ActivityListSheet?
     
     var body: some View {
         NavigationStack {
@@ -93,10 +93,11 @@ struct ActivityListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showFilters = true
+                        activeSheet = .filters
                     } label: {
                         Image(systemName: viewModel.hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
+                    .accessibilityLabel("Filtros")
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -116,16 +117,20 @@ struct ActivityListView: View {
                     } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
+                    .accessibilityLabel("Ordenar")
                 }
             }
             .navigationDestination(for: Activity.self) { activity in
                 ActivityDetailView(activity: activity)
             }
-            .sheet(isPresented: $showFilters) {
-                ActivityFilterView(viewModel: viewModel)
-                    .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .filters:
+                    ActivityFilterView(viewModel: viewModel)
+                        .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+                }
             }
-            .onAppear {
+            .task {
                 viewModel.configure(modelContext: modelContext)
                 viewModel.loadActivities()
             }
@@ -154,6 +159,12 @@ struct ActivityListView: View {
             return date1 > date2
         }
     }
+}
+
+private enum ActivityListSheet: Hashable, Identifiable {
+    case filters
+
+    var id: Self { self }
 }
 
 #Preview {

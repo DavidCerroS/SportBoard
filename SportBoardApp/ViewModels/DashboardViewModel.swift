@@ -43,6 +43,8 @@ final class DashboardViewModel {
     var silentAlerts: [SilentAlert] = []
     var efficiencyTrend: EfficiencyTrendResult?
     var suspiciousPeak: SuspiciousPeakResult?
+    var trainingReadiness: TrainingReadiness?
+    var racePreparation: RacePreparation?
     
     private var modelContext: ModelContext?
     
@@ -202,6 +204,25 @@ final class DashboardViewModel {
             suspiciousPeak = try SuspiciousPeakDetector.evaluate(modelContext: context, profile: profile)
         } catch {
             suspiciousPeak = nil
+        }
+
+        trainingReadiness = TrainingReadinessService.evaluate(
+            profile: profile,
+            consistency: consistencyBreakdown,
+            fatigue: fatigueDiagnosis,
+            efficiencyTrend: efficiencyTrend,
+            suggestion: nextWorkoutSuggestion,
+            alerts: silentAlerts,
+            suspiciousPeak: suspiciousPeak
+        )
+
+        do {
+            racePreparation = try RacePreparationService.evaluate(
+                modelContext: context,
+                readiness: trainingReadiness
+            )
+        } catch {
+            racePreparation = nil
         }
     }
     

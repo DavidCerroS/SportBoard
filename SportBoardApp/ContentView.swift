@@ -54,11 +54,15 @@ struct MainTabView: View {
                 IntelligenceView(viewModel: dashboardViewModel)
             }
             
-            Tab("Actividades", systemImage: "figure.run", value: 2) {
+            Tab("Estadísticas", systemImage: "chart.bar.xaxis", value: 2) {
+                StatisticsView(viewModel: dashboardViewModel)
+            }
+
+            Tab("Actividades", systemImage: "figure.run", value: 3) {
                 ActivityListView(viewModel: activitiesViewModel)
             }
 
-            Tab("Comparar", systemImage: "rectangle.split.2x1", value: 3) {
+            Tab("Comparar", systemImage: "rectangle.split.2x1", value: 4) {
                 NavigationStack {
                     ActivityComparisonView()
                 }

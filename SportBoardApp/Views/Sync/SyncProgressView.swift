@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct SyncProgressView: View {
+    @Environment(\.dismiss) private var dismiss
+
     @ObservedObject var viewModel: SyncViewModel
-    var onDismiss: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 24) {
@@ -20,7 +21,7 @@ struct SyncProgressView: View {
                 Spacer()
                 if viewModel.progress.phase == .completed {
                     Button("Cerrar") {
-                        onDismiss?()
+                        dismiss()
                     }
                 }
             }

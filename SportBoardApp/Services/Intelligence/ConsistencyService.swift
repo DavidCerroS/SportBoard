@@ -24,6 +24,9 @@ struct ConsistencyService {
     
     /// Ventana de análisis (semanas)
     private static let analysisWeeks = 12
+
+    /// Ventana amplia para racha de continuidad.
+    private static let streakAnalysisWeeks = 52
     
     /// Hueco "grande" en días (sin entrenar)
     private static let gapThresholdDays = 4
@@ -43,19 +46,25 @@ struct ConsistencyService {
     
     static func computeFromActivities(
         _ activities: [Activity],
-        profile: RunnerProfile?
+        profile: RunnerProfile?,
+        now: Date = Date(),
+        calendar: Calendar = .sportBoardMadrid
     ) -> ConsistencyBreakdown {
-        let now = Date()
-        let calendar = Calendar.sportBoardMadrid
-        let weekStart = now.startOfWeekMadrid
+        let weekStart = now.startOfWeek(using: calendar)
         var weeksWithActivity: Set<Date> = []
+        var streakWeeksWithActivity: Set<Date> = []
         var weekLoads: [Date: Double] = [:]
         var gapsOver4 = 0
         var easyTime = 0
         var totalTime = 0
         
         let easyPaceMs = profile?.easyPaceMs ?? 0
-        // Solo considerar actividades en la ventana de análisis (ej. últimas 12 semanas)
+        let streakWindowStart = calendar.date(byAdding: .weekOfYear, value: -Self.streakAnalysisWeeks, to: weekStart) ?? weekStart
+        for activity in activities where activity.startDate >= streakWindowStart {
+            streakWeeksWithActivity.insert(activity.startDate.startOfWeek(using: calendar))
+        }
+
+        // Solo considerar actividades en la ventana de análisis reciente para score/carga.
         let windowStart = calendar.date(byAdding: .weekOfYear, value: -Self.analysisWeeks, to: weekStart) ?? weekStart
         let activitiesInWindow = activities.filter { $0.startDate >= windowStart }
         let sortedByDate = activitiesInWindow.sorted { $0.startDate < $1.startDate }
@@ -63,7 +72,7 @@ struct ConsistencyService {
         for i in 0..<sortedByDate.count {
             let act = sortedByDate[i]
             let start = act.startDate
-            let week = start.startOfWeekMadrid
+            let week = start.startOfWeek(using: calendar)
             weeksWithActivity.insert(week)
             let load = Double(act.movingTime) / 3600.0 // horas
             weekLoads[week, default: 0] += load
@@ -83,23 +92,29 @@ struct ConsistencyService {
             }
         }
         
-        // Racha: semanas consecutivas hacia atrás con >=1 Run. Si hay actividad esta semana, desde esta; si no, desde la última semana con actividad.
+        // Racha: semanas consecutivas hacia atras con >=1 Run. Si aun no hay carrera esta semana,
+        // se cuenta desde la ultima semana con actividad para no romper la racha antes del entreno previsto.
         var consecutiveWeeks = 0
         var startWeekForStreak = weekStart
-        if !weeksWithActivity.contains(weekStart) {
-            let sortedWeeks = weeksWithActivity.sorted(by: >)
+        if !streakWeeksWithActivity.contains(weekStart) {
+            let sortedWeeks = streakWeeksWithActivity.sorted(by: >)
             if let lastWithActivity = sortedWeeks.first {
                 startWeekForStreak = lastWithActivity
             }
         }
-        var current = startWeekForStreak
-        for _ in 0..<Self.analysisWeeks {
-            if weeksWithActivity.contains(current) {
-                consecutiveWeeks += 1
-            } else {
-                break
+        if let daysSinceStreakAnchor = calendar.dateComponents([.day], from: startWeekForStreak, to: weekStart).day,
+           daysSinceStreakAnchor <= 7 {
+            var current = startWeekForStreak
+            for _ in 0..<Self.streakAnalysisWeeks {
+                if streakWeeksWithActivity.contains(current) {
+                    consecutiveWeeks += 1
+                } else {
+                    break
+                }
+                current = calendar.date(byAdding: .weekOfYear, value: -1, to: current) ?? current
             }
-            current = calendar.date(byAdding: .weekOfYear, value: -1, to: current) ?? current
+        } else if streakWeeksWithActivity.contains(weekStart) {
+            consecutiveWeeks = 1
         }
         
         // Variación de carga semanal (CV) — solo semanas con actividad en ventana
@@ -116,12 +131,12 @@ struct ConsistencyService {
         
         if consecutiveWeeks >= 4 {
             score += min(15, consecutiveWeeks)
-            reasons.append("Racha: \(consecutiveWeeks) semanas")
+            reasons.append("Racha activa: \(consecutiveWeeks) semanas con carrera")
         } else if consecutiveWeeks > 0 {
-            reasons.append("Racha: \(consecutiveWeeks) semanas")
+            reasons.append("Racha activa: \(consecutiveWeeks) semanas con carrera")
         } else {
             score -= 20
-            reasons.append("Sin racha reciente")
+            reasons.append("Sin racha activa de carreras semanales")
         }
         
         if gapsOver4 == 0 {
@@ -162,9 +177,9 @@ struct ConsistencyService {
     
     private static func fetchRunActivities(modelContext: ModelContext, sportType: String) throws -> [Activity] {
         var descriptor = FetchDescriptor<Activity>(
-            sortBy: [SortDescriptor(\.startDate, order: .forward)]
+            sortBy: [SortDescriptor(\.startDate, order: .reverse)]
         )
-        descriptor.fetchLimit = 500
+        descriptor.fetchLimit = 1_000
         let all = try modelContext.fetch(descriptor)
         let runTypes = ["run", "virtualrun", "trailrun"]
         return all.filter { runTypes.contains($0.sportType.lowercased()) }
