@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 
 struct RacePreparation {
+    var source: RacePreparationSource
     var goal: RaceGoal
     var phase: RacePreparationPhase
     var daysToRace: Int
@@ -19,6 +20,7 @@ struct RacePreparation {
     var completedWorkoutIDs: Set<String>
     var weekStatus: PlanWeekStatus
     var decision: PlanAdjustmentDecision
+    var adherence: [WorkoutAdherence]
     var monthlyBlocks: [MonthlyTrainingBlock]
 }
 
@@ -26,7 +28,13 @@ struct RaceGoal {
     var name: String
     var distanceName: String
     var raceDate: Date
+    var targetTimeText: String?
     var objective: String
+}
+
+enum RacePreparationSource: Equatable {
+    case activeGoal
+    case fallback
 }
 
 enum RacePreparationPhase {
@@ -125,6 +133,47 @@ struct PlannedWorkout: Identifiable {
     var minDuration: Int
     var maxDuration: Int
     var priority: WorkoutPriority
+    var adaptation: WorkoutAdaptation? = nil
+}
+
+struct WorkoutAdaptation {
+    var originalType: PlannedWorkoutType
+    var originalTitle: String
+    var originalPrescription: String
+    var reason: String
+    var severity: PlanDecisionSeverity
+}
+
+struct WorkoutAdherence: Identifiable {
+    var id: String { workoutId }
+    var workoutId: String
+    var status: WorkoutAdherenceStatus
+    var title: String
+    var message: String
+    var actualSummary: String?
+}
+
+enum WorkoutAdherenceStatus: Equatable {
+    case pending
+    case completed
+    case partial
+    case missed
+    case adapted
+
+    var title: String {
+        switch self {
+        case .pending:
+            return "Pendiente"
+        case .completed:
+            return "Cumplida"
+        case .partial:
+            return "Parcial"
+        case .missed:
+            return "Sin hacer"
+        case .adapted:
+            return "Adaptada"
+        }
+    }
 }
 
 enum WorkoutPriority: String, Codable {
@@ -204,6 +253,18 @@ struct ImportedPlannedWorkout: Codable {
     var notes: [String]?
 }
 
+extension RaceGoal {
+    init(_ trainingGoal: TrainingGoal) {
+        self.init(
+            name: trainingGoal.name,
+            distanceName: trainingGoal.distanceName,
+            raceDate: trainingGoal.raceDate,
+            targetTimeText: trainingGoal.targetTimeText,
+            objective: trainingGoal.objective
+        )
+    }
+}
+
 enum TrainingPlanImportError: LocalizedError {
     case invalidJSON
     case invalidMonth
@@ -277,26 +338,49 @@ struct RacePreparationService {
         modelContext: ModelContext,
         readiness: TrainingReadiness?,
         now: Date = Date()
-    ) throws -> RacePreparation {
+    ) throws -> RacePreparation? {
+        guard let activeGoal = try fetchActiveGoal(modelContext: modelContext) else {
+            return nil
+        }
         let activities = try fetchRuns(modelContext: modelContext)
-        return evaluateFromActivities(activities, readiness: readiness, now: now)
+        return evaluateFromActivities(
+            activities,
+            readiness: readiness,
+            goal: RaceGoal(activeGoal),
+            preferredWeekdayOffsets: activeGoal.preferredWeekdayOffsets,
+            source: .activeGoal,
+            now: now
+        )
     }
 
     static func evaluateFromActivities(
         _ activities: [Activity],
         readiness: TrainingReadiness?,
+        goal: RaceGoal? = nil,
+        preferredWeekdayOffsets: [Int] = [0, 1, 3, 5],
+        source: RacePreparationSource = .fallback,
         now: Date = Date(),
         calendar: Calendar = .sportBoardMadrid
     ) -> RacePreparation {
-        let goal = defaultGoal(calendar: calendar)
-        let daysToRace = max(0, calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: goal.raceDate)).day ?? 0)
+        let goal = goal ?? defaultGoal(calendar: calendar)
+        let rawDaysToRace = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: goal.raceDate)).day ?? 0
+        let daysToRace = max(0, rawDaysToRace)
         let weeksToRace = max(0, Int(ceil(Double(daysToRace) / 7.0)))
-        let phase = phaseFor(daysToRace: daysToRace)
-        let weekPlan = buildWeekPlan(now: now, goal: goal, phase: phase, weeksToRace: weeksToRace, calendar: calendar)
+        let phase = phaseFor(daysToRace: rawDaysToRace)
+        let baseWeekPlan = buildWeekPlan(
+            now: now,
+            goal: goal,
+            phase: phase,
+            weeksToRace: weeksToRace,
+            preferredWeekdayOffsets: preferredWeekdayOffsets,
+            calendar: calendar
+        )
+        let weekPlan = adaptWeekPlan(baseWeekPlan, readiness: readiness)
         let completed = completedWorkoutIDs(weekPlan: weekPlan, activities: activities, calendar: calendar)
         let todayWorkout = weekPlan.first { calendar.isDate($0.date, inSameDayAs: now) }
         let nextWorkout = weekPlan.first { $0.date >= calendar.startOfDay(for: now) && !completed.contains($0.id) }
         let status = weekStatus(weekPlan: weekPlan, completed: completed, now: now, calendar: calendar)
+        let adherence = adherenceFor(weekPlan: weekPlan, activities: activities, now: now, calendar: calendar)
         let decision = decisionFor(
             todayWorkout: todayWorkout,
             nextWorkout: nextWorkout,
@@ -308,6 +392,7 @@ struct RacePreparationService {
         )
 
         return RacePreparation(
+            source: source,
             goal: goal,
             phase: phase,
             daysToRace: daysToRace,
@@ -318,8 +403,18 @@ struct RacePreparationService {
             completedWorkoutIDs: completed,
             weekStatus: status,
             decision: decision,
+            adherence: adherence,
             monthlyBlocks: monthlyBlocks()
         )
+    }
+
+    static func fetchActiveGoal(modelContext: ModelContext) throws -> TrainingGoal? {
+        var descriptor = FetchDescriptor<TrainingGoal>(
+            predicate: #Predicate { $0.isActive == true },
+            sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
     }
 
     private static func defaultGoal(calendar: Calendar) -> RaceGoal {
@@ -335,6 +430,7 @@ struct RacePreparationService {
             name: "Media maraton",
             distanceName: "21,1 km",
             raceDate: components.date ?? Date(),
+            targetTimeText: "1h 35m",
             objective: "Llegar fuerte y sano al 8 de noviembre"
         )
     }
@@ -361,6 +457,7 @@ struct RacePreparationService {
         goal: RaceGoal,
         phase: RacePreparationPhase,
         weeksToRace: Int,
+        preferredWeekdayOffsets: [Int],
         calendar: Calendar
     ) -> [PlannedWorkout] {
         if let importedPlan = monthlyPlan(for: now, calendar: calendar) {
@@ -379,12 +476,23 @@ struct RacePreparationService {
         }
 
         let weekStart = now.startOfWeek(using: calendar)
-        return [
-            plannedWorkout(weekStart: weekStart, weekdayOffset: 0, type: .recovery, phase: phase, weeksToRace: weeksToRace, calendar: calendar),
-            plannedWorkout(weekStart: weekStart, weekdayOffset: 1, type: .intervals, phase: phase, weeksToRace: weeksToRace, calendar: calendar),
-            plannedWorkout(weekStart: weekStart, weekdayOffset: 3, type: .tempo, phase: phase, weeksToRace: weeksToRace, calendar: calendar),
-            plannedWorkout(weekStart: weekStart, weekdayOffset: 5, type: .longRun, phase: phase, weeksToRace: weeksToRace, calendar: calendar)
-        ]
+        let types = workoutTypes(for: preferredWeekdayOffsets.count)
+        return zip(preferredWeekdayOffsets.sorted(), types).map { offset, type in
+            plannedWorkout(weekStart: weekStart, weekdayOffset: offset, type: type, phase: phase, weeksToRace: weeksToRace, calendar: calendar)
+        }
+    }
+
+    private static func workoutTypes(for count: Int) -> [PlannedWorkoutType] {
+        switch count {
+        case ..<3:
+            return [.recovery, .longRun]
+        case 3:
+            return [.recovery, .tempo, .longRun]
+        case 4:
+            return [.recovery, .intervals, .tempo, .longRun]
+        default:
+            return [.recovery, .intervals, .recovery, .tempo, .longRun, .recovery]
+        }
     }
 
     private static func plannedWorkout(
@@ -470,7 +578,7 @@ struct RacePreparationService {
                 date: goal.raceDate,
                 type: .race,
                 title: goal.name,
-                prescription: "21,1 km",
+                prescription: goal.distanceName,
                 intent: "Ejecutar el plan con cabeza los primeros 15 km.",
                 minDuration: 0,
                 maxDuration: 0,
@@ -478,6 +586,56 @@ struct RacePreparationService {
             )
         )
         return plan.sorted { $0.date < $1.date }
+    }
+
+    private static func adaptWeekPlan(
+        _ weekPlan: [PlannedWorkout],
+        readiness: TrainingReadiness?
+    ) -> [PlannedWorkout] {
+        guard let readiness else { return weekPlan }
+
+        return weekPlan.map { workout in
+            guard workout.type != .race && workout.type != .rest else { return workout }
+
+            if readiness.riskLevel == .high && (workout.priority == .key || workout.priority == .high || workout.type == .intervals || workout.type == .tempo || workout.type == .longRun) {
+                var adapted = workout
+                adapted.type = .recovery
+                adapted.title = "Rodaje muy facil"
+                adapted.prescription = "30-45' muy faciles o descanso si las piernas no responden."
+                adapted.intent = "Bajar carga y asimilar antes de volver a meter intensidad."
+                adapted.minDuration = 30
+                adapted.maxDuration = 45
+                adapted.priority = .low
+                adapted.adaptation = WorkoutAdaptation(
+                    originalType: workout.type,
+                    originalTitle: workout.title,
+                    originalPrescription: workout.prescription,
+                    reason: "Readiness en riesgo alto: conviene recortar la sesion prevista.",
+                    severity: .red
+                )
+                return adapted
+            }
+
+            if readiness.riskLevel == .moderate && (workout.type == .intervals || workout.type == .tempo || workout.type == .longRun) {
+                var adapted = workout
+                let reducedMin = max(25, Int((Double(workout.minDuration) * 0.75).rounded()))
+                let reducedMax = max(reducedMin, Int((Double(workout.maxDuration) * 0.75).rounded()))
+                adapted.minDuration = reducedMin
+                adapted.maxDuration = reducedMax
+                adapted.prescription = "\(workout.prescription) Version controlada: recorta volumen 20-30% y no fuerces el ritmo."
+                adapted.intent = "Mantener el estimulo sin convertirlo en carga excesiva."
+                adapted.adaptation = WorkoutAdaptation(
+                    originalType: workout.type,
+                    originalTitle: workout.title,
+                    originalPrescription: workout.prescription,
+                    reason: "Readiness moderado: la sesion encaja, pero pide margen.",
+                    severity: .yellow
+                )
+                return adapted
+            }
+
+            return workout
+        }
     }
 
     private static func completedWorkoutIDs(
@@ -504,6 +662,98 @@ struct RacePreparationService {
             }
         }
         return completed
+    }
+
+    private static func adherenceFor(
+        weekPlan: [PlannedWorkout],
+        activities: [Activity],
+        now: Date,
+        calendar: Calendar
+    ) -> [WorkoutAdherence] {
+        weekPlan.map { workout in
+            let dayActivities = activities
+                .filter { calendar.isDate($0.startDate, inSameDayAs: workout.date) }
+                .sorted { $0.movingTime > $1.movingTime }
+            let best = dayActivities.first
+            let dayIsPast = workout.date < calendar.startOfDay(for: now)
+            let dayIsToday = calendar.isDate(workout.date, inSameDayAs: now)
+
+            if let best {
+                let actualMinutes = best.movingTime / 60
+                let actualText = "\(best.formattedDistance) · \(TimeInterval(best.movingTime).formattedHoursMinutes)"
+                let intensityMessage = intensityMessage(for: best, workout: workout)
+                let status: WorkoutAdherenceStatus
+                let message: String
+
+                if actualMinutes >= workout.minDuration || best.distance >= minimumDistance(for: workout) {
+                    status = workout.adaptation == nil ? .completed : .adapted
+                    message = intensityMessage ?? "Sesion alineada con lo previsto."
+                } else {
+                    status = .partial
+                    message = "Sesion mas corta de lo previsto; cuenta como continuidad, no como compensacion pendiente."
+                }
+
+                return WorkoutAdherence(
+                    workoutId: workout.id,
+                    status: status,
+                    title: status.title,
+                    message: message,
+                    actualSummary: actualText
+                )
+            }
+
+            if dayIsPast {
+                return WorkoutAdherence(
+                    workoutId: workout.id,
+                    status: .missed,
+                    title: "Sin registrar",
+                    message: workout.priority == .key || workout.priority == .high
+                        ? "Sesion clave pasada sin registrar. No la juntes con la siguiente."
+                        : "Sesion pasada sin registrar; no hace falta compensarla.",
+                    actualSummary: nil
+                )
+            }
+
+            return WorkoutAdherence(
+                workoutId: workout.id,
+                status: workout.adaptation == nil ? .pending : .adapted,
+                title: dayIsToday ? "Hoy" : "Pendiente",
+                message: workout.adaptation?.reason ?? "Aun no hay actividad registrada para esta sesion.",
+                actualSummary: nil
+            )
+        }
+    }
+
+    private static func minimumDistance(for workout: PlannedWorkout) -> Double {
+        switch workout.type {
+        case .longRun:
+            return 12_000
+        case .race:
+            return 20_000
+        case .intervals, .tempo:
+            return 5_000
+        case .recovery:
+            return 4_000
+        case .rest:
+            return Double.greatestFiniteMagnitude
+        }
+    }
+
+    private static func intensityMessage(for activity: Activity, workout: PlannedWorkout) -> String? {
+        let maxPlannedSeconds = workout.maxDuration * 60
+        if maxPlannedSeconds > 0 && activity.movingTime > Int(Double(maxPlannedSeconds) * 1.2) {
+            return "Cumplida, pero mas larga de lo previsto. La siguiente sesion debe salir controlada."
+        }
+
+        if workout.type == .recovery, let hr = activity.averageHeartrate, hr >= 155 {
+            return "Registrada, aunque la FC parece alta para recuperacion. Conviene suavizar la siguiente."
+        }
+
+        if workout.type == .intervals || workout.type == .tempo || workout.type == .longRun {
+            return "Cumplida como sesion de calidad; evita compensar volumen extra."
+        }
+
+        return nil
     }
 
     private static func weekStatus(
@@ -563,7 +813,7 @@ struct RacePreparationService {
             return PlanAdjustmentDecision(
                 title: "Recortar el plan",
                 recommendation: "Cambia \(workout.title.lowercased()) por 30-45' muy faciles o descanso.",
-                reason: "El plan manda, pero las señales actuales indican riesgo alto. Mejor perder un entreno que comprometer noviembre.",
+                reason: "El plan manda, pero las señales actuales indican riesgo alto. Mejor perder un entreno que comprometer el objetivo.",
                 severity: .red
             )
         }

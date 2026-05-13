@@ -13,9 +13,9 @@ struct SplashScreenContent: Equatable {
 
     static let sportBoard = SplashScreenContent(
         title: "SportBoard",
-        subtitle: "Tu motor de entrenamiento",
-        highlights: ["RITMO", "CARGA", "PROGRESO"],
-        minimumDisplayDuration: 1.9
+        subtitle: "Coach adaptativo para correr mejor",
+        highlights: ["READINESS", "PLAN", "RITMO"],
+        minimumDisplayDuration: 2.1
     )
 
     var minimumDisplayNanoseconds: UInt64 {
@@ -73,29 +73,22 @@ struct SplashScreenView: View {
         ZStack {
             background
 
-            VStack(spacing: 34) {
-                Spacer()
+            VStack(spacing: 24) {
+                topSignalBar
+                    .padding(.top, 58)
 
-                emblem
+                Spacer(minLength: 18)
 
-                VStack(spacing: 12) {
-                    Text(content.title.uppercased())
-                        .font(.system(size: 42, weight: .black, design: .rounded))
-                        .tracking(3)
-                        .foregroundStyle(.white)
-                        .shadow(color: .stravaOrange.opacity(0.45), radius: 18, y: 6)
+                heroLockup
 
-                    Text(content.subtitle)
-                        .font(.headline.weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.72))
-                }
+                metricDeck
 
                 highlightStrip
 
-                Spacer()
+                Spacer(minLength: 16)
 
                 loadingBar
-                    .padding(.bottom, 54)
+                    .padding(.bottom, 46)
             }
             .padding(.horizontal, 28)
         }
@@ -113,66 +106,154 @@ struct SplashScreenView: View {
 
     private var background: some View {
         ZStack {
-            SportBoardTheme.backgroundGradient
+            LinearGradient(
+                colors: [
+                    Color(red: 0.012, green: 0.015, blue: 0.026),
+                    Color(red: 0.034, green: 0.040, blue: 0.070),
+                    Color(red: 0.015, green: 0.018, blue: 0.031)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
 
-            Circle()
-                .fill(SportBoardTheme.Palette.accent.opacity(0.36))
-                .frame(width: 320, height: 320)
-                .blur(radius: 72)
-                .offset(x: isAnimated ? -120 : -84, y: isAnimated ? -250 : -210)
+            TrackField()
+                .stroke(.white.opacity(0.075), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                .offset(y: isAnimated ? 14 : -8)
 
-            Circle()
-                .fill(SportBoardTheme.Palette.electricBlue.opacity(0.24))
-                .frame(width: 220, height: 220)
-                .blur(radius: 64)
-                .offset(x: isAnimated ? 130 : 92, y: isAnimated ? 215 : 260)
+            TrackField()
+                .stroke(SportBoardTheme.Palette.accent.opacity(0.26), style: StrokeStyle(lineWidth: 3.2, lineCap: .round))
+                .scaleEffect(isAnimated ? 1.06 : 0.98)
+                .offset(y: 22)
 
-            RacingLines()
-                .stroke(.white.opacity(0.09), style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
-                .scaleEffect(isAnimated ? 1.04 : 0.98)
+            DiagonalTelemetryGrid()
+                .stroke(.white.opacity(0.055), style: StrokeStyle(lineWidth: 1, lineCap: .round))
+
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            SportBoardTheme.Palette.accent.opacity(0.32),
+                            .clear,
+                            SportBoardTheme.Palette.electricBlue.opacity(0.18)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .blendMode(.screen)
+                .opacity(isAnimated ? 0.86 : 0.58)
         }
     }
 
-    private var emblem: some View {
-        ZStack {
-            ForEach(0..<3) { index in
-                Circle()
-                    .stroke(
-                        AngularGradient(
-                            colors: [
-                                .white.opacity(0.04),
-                                .white.opacity(0.7),
-                                .stravaOrange,
-                                .white.opacity(0.04)
-                            ],
-                            center: .center
-                        ),
-                        lineWidth: CGFloat(10 - index * 2)
-                    )
-                    .frame(
-                        width: CGFloat(170 + index * 34),
-                        height: CGFloat(170 + index * 34)
-                    )
-                    .rotationEffect(.degrees(isAnimated ? Double(24 + index * 9) : Double(-18 - index * 6)))
-                    .opacity(0.82 - Double(index) * 0.18)
-            }
-
-            Circle()
-                .fill(.ultraThinMaterial)
-                .frame(width: 148, height: 148)
-                .overlay {
-                    Circle()
-                        .stroke(SportBoardTheme.Palette.hairlineStrong, lineWidth: 1)
-                }
-                .shadow(color: .black.opacity(0.3), radius: 24, y: 18)
-
-            Image(systemName: "figure.run.circle.fill")
-                .font(.system(size: 86, weight: .bold))
-                .symbolRenderingMode(.palette)
-                .foregroundStyle(.white, SportBoardTheme.Palette.accent)
-                .scaleEffect(isAnimated ? 1.04 : 0.96)
+    private var topSignalBar: some View {
+        HStack(spacing: 10) {
+            signalPill("LIVE", color: SportBoardTheme.Palette.success)
+            Spacer()
+            signalPill("COACH READY", color: SportBoardTheme.Palette.accent)
         }
-        .frame(width: 250, height: 250)
+    }
+
+    private func signalPill(_ text: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+                .shadow(color: color.opacity(0.8), radius: 8)
+
+            Text(text)
+                .font(.caption2.weight(.heavy))
+                .tracking(1.1)
+                .foregroundStyle(.white.opacity(0.86))
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
+        .background(.white.opacity(0.08), in: Capsule())
+        .overlay(
+            Capsule()
+                .stroke(.white.opacity(0.14), lineWidth: 1)
+        )
+    }
+
+    private var heroLockup: some View {
+        VStack(spacing: 18) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 34, style: .continuous)
+                    .fill(.white.opacity(0.10))
+                    .frame(width: 146, height: 146)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 34, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.38), SportBoardTheme.Palette.accent.opacity(0.85)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.4
+                            )
+                    )
+                    .shadow(color: SportBoardTheme.Palette.accent.opacity(0.34), radius: 32, y: 16)
+                    .rotationEffect(.degrees(isAnimated ? 4 : -3))
+
+                Image(systemName: "figure.run")
+                    .font(.system(size: 68, weight: .black))
+                    .foregroundStyle(.white)
+                    .offset(x: isAnimated ? 6 : -2, y: 0)
+
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 22, weight: .black))
+                    .foregroundStyle(SportBoardTheme.Palette.warning)
+                    .offset(x: 44, y: -42)
+                    .scaleEffect(isAnimated ? 1.12 : 0.9)
+            }
+            .frame(height: 160)
+
+            VStack(spacing: 9) {
+                Text(content.title.uppercased())
+                    .font(.system(size: 48, weight: .black, design: .rounded))
+                    .tracking(2.8)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .shadow(color: SportBoardTheme.Palette.accent.opacity(0.54), radius: 20, y: 8)
+
+                Text(content.subtitle)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.white.opacity(0.74))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var metricDeck: some View {
+        HStack(spacing: 10) {
+            splashMetric("92", "READY", SportBoardTheme.Palette.success)
+            splashMetric("4:15", "PACE", SportBoardTheme.Palette.accent)
+            splashMetric("1h35", "GOAL", SportBoardTheme.Palette.aqua)
+        }
+    }
+
+    private func splashMetric(_ value: String, _ label: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.black))
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Text(label)
+                .font(.caption2.weight(.heavy))
+                .tracking(1.1)
+                .foregroundStyle(color)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(color.opacity(0.34), lineWidth: 1)
+        )
     }
 
     private var highlightStrip: some View {
@@ -191,34 +272,53 @@ struct SplashScreenView: View {
         VStack(spacing: 12) {
             Capsule()
                 .fill(.white.opacity(0.16))
-                .frame(width: 176, height: 5)
+                .frame(width: 192, height: 5)
                 .overlay(alignment: .leading) {
                     Capsule()
                         .fill(.white)
-                        .frame(width: isAnimated ? 176 : 56, height: 5)
+                        .frame(width: isAnimated ? 192 : 54, height: 5)
                         .shadow(color: .white.opacity(0.75), radius: 8)
                 }
                 .clipShape(Capsule())
 
-            Text("Preparando tu próxima sesión")
+            Text("Calculando tu próximo movimiento")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(.white.opacity(0.68))
         }
     }
 }
 
-private struct RacingLines: Shape {
+private struct TrackField: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
-        let spacing = rect.height / 8
+        let centerY = rect.midY + rect.height * 0.12
+        let baseWidth = rect.width * 1.28
 
-        for index in 0...8 {
-            let y = CGFloat(index) * spacing
-            path.move(to: CGPoint(x: -rect.width * 0.1, y: y))
-            path.addQuadCurve(
-                to: CGPoint(x: rect.width * 1.1, y: y + 82),
-                control: CGPoint(x: rect.midX, y: y - 74)
+        for index in 0..<8 {
+            let inset = CGFloat(index) * 26
+            let rect = CGRect(
+                x: rect.midX - baseWidth / 2 + inset,
+                y: centerY - 150 + inset * 0.36,
+                width: baseWidth - inset * 2,
+                height: 300 - inset * 0.72
             )
+            path.addRoundedRect(in: rect, cornerSize: CGSize(width: 150, height: 150))
+        }
+
+        return path
+    }
+}
+
+private struct DiagonalTelemetryGrid: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let spacing: CGFloat = 42
+        var x = -rect.height
+
+        while x < rect.width + rect.height {
+            path.move(to: CGPoint(x: x, y: 0))
+            path.addLine(to: CGPoint(x: x + rect.height, y: rect.height))
+            x += spacing
         }
 
         return path

@@ -45,6 +45,7 @@ final class DashboardViewModel {
     var suspiciousPeak: SuspiciousPeakResult?
     var trainingReadiness: TrainingReadiness?
     var racePreparation: RacePreparation?
+    var activeTrainingGoal: TrainingGoal?
     
     private var modelContext: ModelContext?
     
@@ -217,12 +218,64 @@ final class DashboardViewModel {
         )
 
         do {
+            activeTrainingGoal = try RacePreparationService.fetchActiveGoal(modelContext: context)
             racePreparation = try RacePreparationService.evaluate(
                 modelContext: context,
                 readiness: trainingReadiness
             )
         } catch {
+            activeTrainingGoal = nil
             racePreparation = nil
+        }
+    }
+
+    func saveTrainingGoal(
+        existing: TrainingGoal?,
+        name: String,
+        distanceMeters: Double,
+        raceDate: Date,
+        targetTimeSeconds: Int?,
+        objective: String,
+        preferredWeekdayOffsets: [Int],
+        sessionsPerWeek: Int
+    ) {
+        guard let context = modelContext else { return }
+
+        do {
+            let activeGoals = try context.fetch(FetchDescriptor<TrainingGoal>())
+            for goal in activeGoals where goal.isActive && goal.id != existing?.id {
+                goal.isActive = false
+            }
+
+            if let existing {
+                existing.update(
+                    name: name,
+                    distanceMeters: distanceMeters,
+                    raceDate: raceDate,
+                    targetTimeSeconds: targetTimeSeconds,
+                    objective: objective,
+                    preferredWeekdayOffsets: preferredWeekdayOffsets,
+                    sessionsPerWeek: sessionsPerWeek
+                )
+                existing.isActive = true
+            } else {
+                let goal = TrainingGoal(
+                    name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Media maraton" : name,
+                    distanceMeters: distanceMeters,
+                    raceDate: raceDate,
+                    targetTimeSeconds: targetTimeSeconds,
+                    objective: objective.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Llegar fuerte y sano" : objective,
+                    preferredWeekdayOffsets: preferredWeekdayOffsets,
+                    sessionsPerWeek: sessionsPerWeek,
+                    isActive: true
+                )
+                context.insert(goal)
+            }
+
+            try context.save()
+            loadStats()
+        } catch {
+            print("Error saving training goal: \(error)")
         }
     }
     

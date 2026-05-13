@@ -12,6 +12,7 @@ struct IntelligenceView: View {
 
     @State private var isDiagnosisExpanded = false
     @State private var showImportPlan = false
+    @State private var showGoalEditor = false
 
     private var readiness: TrainingReadiness? {
         viewModel.trainingReadiness
@@ -40,10 +41,15 @@ struct IntelligenceView: View {
                         )
                     } else if let readiness {
                         CoachReadinessHero(readiness: readiness)
+                        CoachGoalSetupCard {
+                            showGoalEditor = true
+                        }
                         CoachNextMoveCard(readiness: readiness)
                         CoachSignalBoard(readiness: readiness)
                     } else {
-                        CoachEmptyState()
+                        CoachEmptyState {
+                            showGoalEditor = true
+                        }
                     }
 
                     CoachLabSection()
@@ -58,6 +64,15 @@ struct IntelligenceView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showGoalEditor = true
+                    } label: {
+                        Image(systemName: viewModel.activeTrainingGoal == nil ? "target" : "target")
+                    }
+                    .accessibilityLabel(viewModel.activeTrainingGoal == nil ? "Crear objetivo" : "Editar objetivo")
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showImportPlan = true
                     } label: {
                         Image(systemName: "square.and.arrow.down")
@@ -67,6 +82,12 @@ struct IntelligenceView: View {
             }
             .sheet(isPresented: $showImportPlan) {
                 ImportMonthlyPlanView {
+                    viewModel.loadStats()
+                }
+                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+            }
+            .sheet(isPresented: $showGoalEditor) {
+                TrainingGoalEditorView(viewModel: viewModel) {
                     viewModel.loadStats()
                 }
                 .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
@@ -170,6 +191,228 @@ private struct ImportMonthlyPlanView: View {
             didImport = false
             errorMessage = (error as? LocalizedError)?.errorDescription ?? "No se pudo importar el plan."
         }
+    }
+}
+
+private struct TrainingGoalEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Bindable var viewModel: DashboardViewModel
+    let onSave: () -> Void
+
+    @State private var name = "Media maraton"
+    @State private var distanceMeters = 21_100.0
+    @State private var distancePreset: GoalDistancePreset = .halfMarathon
+    @State private var customDistanceKm = "6,8"
+    @State private var raceDate = TrainingGoal.suggestedRaceDate()
+    @State private var useTargetTime = true
+    @State private var targetHours = 1
+    @State private var targetMinutes = 35
+    @State private var objective = "Llegar fuerte y sano"
+    @State private var sessionsPerWeek = 4
+    @State private var preferredWeekdayOffsets: Set<Int> = [0, 1, 3, 5]
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Objetivo") {
+                    TextField("Nombre", text: $name)
+
+                    Picker("Distancia", selection: $distancePreset) {
+                        ForEach(GoalDistancePreset.allCases, id: \.self) { preset in
+                            Text(preset.title).tag(preset)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: distancePreset) { _, preset in
+                        if let meters = preset.distanceMeters {
+                            distanceMeters = meters
+                        } else {
+                            distanceMeters = parsedCustomDistanceMeters
+                        }
+                    }
+
+                    if distancePreset == .custom {
+                        TextField("Distancia en km", text: $customDistanceKm)
+                            .keyboardType(.decimalPad)
+                            .onChange(of: customDistanceKm) { _, _ in
+                                distanceMeters = parsedCustomDistanceMeters
+                            }
+                    }
+
+                    DatePicker("Fecha", selection: $raceDate, displayedComponents: .date)
+
+                    Toggle("Tiempo objetivo", isOn: $useTargetTime)
+
+                    if useTargetTime {
+                        Stepper("Horas: \(targetHours)", value: $targetHours, in: 0...5)
+                        Stepper("Minutos: \(targetMinutes)", value: $targetMinutes, in: 0...59)
+                    }
+
+                    TextField("Objetivo", text: $objective, axis: .vertical)
+                }
+
+                Section("Disponibilidad") {
+                    Stepper("Sesiones por semana: \(sessionsPerWeek)", value: $sessionsPerWeek, in: 2...6)
+                        .onChange(of: sessionsPerWeek) { _, newValue in
+                            preferredWeekdayOffsets = Set(TrainingGoal.normalizedWeekdayOffsets(Array(preferredWeekdayOffsets), sessionsPerWeek: newValue))
+                        }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Dias preferidos")
+                            .font(.subheadline.weight(.semibold))
+
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4), spacing: 8) {
+                            ForEach(Self.weekdays, id: \.offset) { day in
+                                Button {
+                                    toggleWeekday(day.offset)
+                                } label: {
+                                    Text(day.title)
+                                        .font(.caption.weight(.bold))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 9)
+                                        .background(
+                                            preferredWeekdayOffsets.contains(day.offset)
+                                                ? SportBoardTheme.Palette.accent.opacity(0.28)
+                                                : Color.white.opacity(0.08),
+                                            in: RoundedRectangle(cornerRadius: SportBoardTheme.Radius.small, style: .continuous)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .premiumScreenBackground()
+            .navigationTitle(viewModel.activeTrainingGoal == nil ? "Crear objetivo" : "Editar objetivo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(SportBoardTheme.Palette.backgroundTop, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Guardar") {
+                        save()
+                    }
+                }
+            }
+            .task {
+                loadExistingGoal()
+            }
+        }
+    }
+
+    private static let weekdays: [(offset: Int, title: String)] = [
+        (0, "Lun"), (1, "Mar"), (2, "Mie"), (3, "Jue"),
+        (4, "Vie"), (5, "Sab"), (6, "Dom")
+    ]
+
+    private func loadExistingGoal() {
+        guard let goal = viewModel.activeTrainingGoal else { return }
+        name = goal.name
+        distanceMeters = goal.distanceMeters
+        distancePreset = GoalDistancePreset.preset(for: goal.distanceMeters)
+        customDistanceKm = String(format: "%.1f", goal.distanceMeters / 1000).replacingOccurrences(of: ".", with: ",")
+        raceDate = goal.raceDate
+        if let targetTimeSeconds = goal.targetTimeSeconds, targetTimeSeconds > 0 {
+            useTargetTime = true
+            targetHours = targetTimeSeconds / 3600
+            targetMinutes = (targetTimeSeconds % 3600) / 60
+        } else {
+            useTargetTime = false
+        }
+        objective = goal.objective
+        sessionsPerWeek = goal.sessionsPerWeek
+        preferredWeekdayOffsets = Set(goal.preferredWeekdayOffsets)
+    }
+
+    private func toggleWeekday(_ offset: Int) {
+        if preferredWeekdayOffsets.contains(offset), preferredWeekdayOffsets.count > 2 {
+            preferredWeekdayOffsets.remove(offset)
+        } else {
+            preferredWeekdayOffsets.insert(offset)
+        }
+        preferredWeekdayOffsets = Set(TrainingGoal.normalizedWeekdayOffsets(Array(preferredWeekdayOffsets), sessionsPerWeek: sessionsPerWeek))
+    }
+
+    private func save() {
+        let offsets = TrainingGoal.normalizedWeekdayOffsets(Array(preferredWeekdayOffsets), sessionsPerWeek: sessionsPerWeek)
+        viewModel.saveTrainingGoal(
+            existing: viewModel.activeTrainingGoal,
+            name: name,
+            distanceMeters: distancePreset == .custom ? parsedCustomDistanceMeters : distanceMeters,
+            raceDate: raceDate,
+            targetTimeSeconds: targetTimeSeconds,
+            objective: objective,
+            preferredWeekdayOffsets: offsets,
+            sessionsPerWeek: sessionsPerWeek
+        )
+        onSave()
+        dismiss()
+    }
+
+    private var parsedCustomDistanceMeters: Double {
+        let normalized = customDistanceKm.replacingOccurrences(of: ",", with: ".")
+        let km = Double(normalized) ?? 6.8
+        return min(100_000, max(1_000, km * 1000))
+    }
+
+    private var targetTimeSeconds: Int? {
+        guard useTargetTime else { return nil }
+        let seconds = targetHours * 3600 + targetMinutes * 60
+        return seconds > 0 ? seconds : nil
+    }
+}
+
+private enum GoalDistancePreset: CaseIterable {
+    case fiveK
+    case tenK
+    case halfMarathon
+    case marathon
+    case custom
+
+    var title: String {
+        switch self {
+        case .fiveK:
+            return "5K"
+        case .tenK:
+            return "10K"
+        case .halfMarathon:
+            return "Media"
+        case .marathon:
+            return "Maraton"
+        case .custom:
+            return "Otro"
+        }
+    }
+
+    var distanceMeters: Double? {
+        switch self {
+        case .fiveK:
+            return 5_000
+        case .tenK:
+            return 10_000
+        case .halfMarathon:
+            return 21_100
+        case .marathon:
+            return 42_195
+        case .custom:
+            return nil
+        }
+    }
+
+    static func preset(for distanceMeters: Double) -> GoalDistancePreset {
+        if abs(distanceMeters - 5_000) < 150 { return .fiveK }
+        if abs(distanceMeters - 10_000) < 250 { return .tenK }
+        if abs(distanceMeters - 21_100) < 250 { return .halfMarathon }
+        if abs(distanceMeters - 42_195) < 500 { return .marathon }
+        return .custom
     }
 }
 
@@ -331,7 +574,7 @@ private struct RaceGoalHero: View {
                         .foregroundStyle(.white)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text("\(raceDateText) · Fase \(preparation.phase.title.lowercased())")
+                    Text(goalDetailText)
                         .font(.subheadline)
                         .foregroundStyle(SportBoardTheme.Palette.mutedText)
                 }
@@ -407,6 +650,14 @@ private struct RaceGoalHero: View {
         return formatter.string(from: preparation.goal.raceDate)
     }
 
+    private var goalDetailText: String {
+        var parts = [raceDateText, "Fase \(preparation.phase.title.lowercased())"]
+        if let targetTime = preparation.goal.targetTimeText {
+            parts.append("Objetivo \(targetTime)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private var readinessExplanation: String {
         readiness.explanation.joined(separator: " ")
     }
@@ -418,7 +669,7 @@ private struct RaceGoalHero: View {
         case .moderate:
             return "Riesgo moderado: el plan sigue en pie, pero alguna señal recomienda controlar volumen, intensidad o recuperacion."
         case .high:
-            return "Riesgo alto: la prioridad es recortar o descansar para no comprometer la preparacion de la media maraton."
+            return "Riesgo alto: la prioridad es recortar o descansar para no comprometer el objetivo."
         }
     }
 }
@@ -551,6 +802,7 @@ private struct RaceWeekPlanSection: View {
             ForEach(preparation.weekPlan) { workout in
                 RaceWorkoutRow(
                     workout: workout,
+                    adherence: preparation.adherence.first { $0.workoutId == workout.id },
                     isCompleted: preparation.completedWorkoutIDs.contains(workout.id),
                     isNext: workout.id == preparation.nextWorkout?.id
                 )
@@ -561,6 +813,7 @@ private struct RaceWeekPlanSection: View {
 
 private struct RaceWorkoutRow: View {
     let workout: PlannedWorkout
+    let adherence: WorkoutAdherence?
     let isCompleted: Bool
     let isNext: Bool
 
@@ -587,6 +840,15 @@ private struct RaceWorkoutRow: View {
                             .padding(.vertical, 4)
                             .background(SportBoardTheme.Palette.accent.opacity(0.85), in: Capsule())
                     }
+
+                    if workout.adaptation != nil {
+                        Text("Adaptada")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 4)
+                            .background(SportBoardTheme.Palette.warning.opacity(0.85), in: Capsule())
+                    }
                 }
 
                 Text(workout.prescription)
@@ -597,6 +859,38 @@ private struct RaceWorkoutRow: View {
                     .font(.caption2)
                     .foregroundStyle(SportBoardTheme.Palette.dimText)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let adaptation = workout.adaptation {
+                    CoachInlineExplanation(message: "\(adaptation.reason) Antes: \(adaptation.originalTitle): \(adaptation.originalPrescription)", color: adaptationColor(adaptation.severity))
+                }
+
+                if let adherence {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: adherenceIcon)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(adherenceColor)
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(adherence.title)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.white)
+
+                            Text(adherence.message)
+                                .font(.caption2)
+                                .foregroundStyle(SportBoardTheme.Palette.mutedText)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if let actual = adherence.actualSummary {
+                                Text(actual)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(adherenceColor)
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(adherenceColor.opacity(0.10), in: RoundedRectangle(cornerRadius: SportBoardTheme.Radius.small, style: .continuous))
+                }
             }
 
             Spacer(minLength: 0)
@@ -607,6 +901,7 @@ private struct RaceWorkoutRow: View {
     private var rowColor: Color {
         if isCompleted { return SportBoardTheme.Palette.success }
         if isNext { return SportBoardTheme.Palette.accent }
+        if workout.adaptation != nil { return SportBoardTheme.Palette.warning }
         switch workout.priority {
         case .low:
             return SportBoardTheme.Palette.aqua
@@ -624,6 +919,45 @@ private struct RaceWorkoutRow: View {
         formatter.locale = Locale(identifier: "es_ES")
         formatter.dateFormat = "EEE"
         return formatter.string(from: workout.date).capitalized
+    }
+
+    private var adherenceColor: Color {
+        switch adherence?.status {
+        case .completed, .adapted:
+            return SportBoardTheme.Palette.success
+        case .partial:
+            return SportBoardTheme.Palette.warning
+        case .missed:
+            return SportBoardTheme.Palette.danger
+        case .pending, .none:
+            return SportBoardTheme.Palette.aqua
+        }
+    }
+
+    private var adherenceIcon: String {
+        switch adherence?.status {
+        case .completed, .adapted:
+            return "checkmark.circle.fill"
+        case .partial:
+            return "circle.lefthalf.filled"
+        case .missed:
+            return "xmark.circle.fill"
+        case .pending, .none:
+            return "clock.fill"
+        }
+    }
+
+    private func adaptationColor(_ severity: PlanDecisionSeverity) -> Color {
+        switch severity {
+        case .green:
+            return SportBoardTheme.Palette.success
+        case .blue:
+            return SportBoardTheme.Palette.aqua
+        case .yellow:
+            return SportBoardTheme.Palette.warning
+        case .red:
+            return SportBoardTheme.Palette.danger
+        }
     }
 }
 
@@ -821,6 +1155,46 @@ private struct CoachNextMoveCard: View {
             labels.append("Base")
         }
         return labels
+    }
+}
+
+private struct CoachGoalSetupCard: View {
+    let action: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "target")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(SportBoardTheme.Palette.violet)
+                    .frame(width: 42, height: 42)
+                    .background(SportBoardTheme.Palette.violet.opacity(0.16), in: Circle())
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Plan adaptativo")
+                        .font(.caption.weight(.bold))
+                        .tracking(1)
+                        .textCase(.uppercase)
+                        .foregroundStyle(SportBoardTheme.Palette.violet)
+
+                    Text("Crea un objetivo para que el Coach convierta readiness en un plan semanal.")
+                        .font(.subheadline)
+                        .foregroundStyle(SportBoardTheme.Palette.mutedText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            Button(action: action) {
+                Label("Crear objetivo", systemImage: "plus.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(SportBoardTheme.Palette.violet.opacity(0.24), in: RoundedRectangle(cornerRadius: SportBoardTheme.Radius.medium, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
+        }
+        .premiumCard(cornerRadius: SportBoardTheme.Radius.large, padding: 20, accent: SportBoardTheme.Palette.violet, isElevated: true)
     }
 }
 
@@ -1139,6 +1513,8 @@ private struct CoachLabSection: View {
 }
 
 private struct CoachEmptyState: View {
+    let createGoalAction: () -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Image(systemName: "brain.head.profile")
@@ -1153,6 +1529,16 @@ private struct CoachEmptyState: View {
                 .font(.subheadline)
                 .foregroundStyle(SportBoardTheme.Palette.mutedText)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: createGoalAction) {
+                Label("Crear objetivo", systemImage: "target")
+                    .font(.subheadline.weight(.bold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(SportBoardTheme.Palette.violet.opacity(0.24), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .premiumCard(cornerRadius: SportBoardTheme.Radius.large, accent: SportBoardTheme.Palette.violet, isElevated: true)
@@ -1180,7 +1566,7 @@ private struct FlowChips: View {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(
         for: Activity.self, ActivityLap.self, ActivitySplit.self, SyncState.self,
-        RunnerProfile.self, PostActivityReflection.self,
+        RunnerProfile.self, TrainingGoal.self, PostActivityReflection.self,
         configurations: config
     )
     return IntelligenceView(viewModel: DashboardViewModel())

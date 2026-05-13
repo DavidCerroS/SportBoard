@@ -18,6 +18,7 @@ struct SportBoardAppApp: App {
             SyncState.self,
             Athlete.self,
             RunnerProfile.self,
+            TrainingGoal.self,
             PostActivityReflection.self
         ])
         

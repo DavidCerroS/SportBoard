@@ -11,7 +11,7 @@ import SwiftData
 
 enum InMemoryModelContainer {
     static func make() throws -> ModelContainer {
-        let schema = Schema([Activity.self, ActivitySplit.self, ActivityLap.self, RunnerProfile.self])
+        let schema = Schema([Activity.self, ActivitySplit.self, ActivityLap.self, RunnerProfile.self, TrainingGoal.self, PostActivityReflection.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         return try ModelContainer(for: schema, configurations: config)
     }
