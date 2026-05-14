@@ -171,16 +171,16 @@ final class SyncService: ObservableObject {
             return
         }
         
-        let detail = try await api.getActivityDetail(id: activity.id)
+        let detail = try await api.getActivityDetail(id: activity.id, includeAllEfforts: true)
         
         // Debug: mostrar datos raw de Strava
         printStravaDebug(detail: detail, activityName: activity.name)
 
-        activity.activityDescription = detail.description
-        activity.deviceName = detail.deviceName
+        applyActivityMetadata(detail, to: activity)
         activity.detailsFetched = true
 
         await applyActivityDetail(detail, to: activity, context: context)
+        await fetchActivityEnrichment(activity: activity, detail: detail, context: context)
         try context.save()
     }
 
@@ -194,7 +194,8 @@ final class SyncService: ObservableObject {
         )
         let needsBackfill = laps.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil } ||
             splits.contains { $0.positiveElevationGain == nil || $0.negativeElevationLoss == nil } ||
-            needsPowerBackfill
+            needsPowerBackfill ||
+            (!laps.isEmpty && activity.sortedTempoBlockSplits.isEmpty)
 
         guard needsBackfill else { return }
 
@@ -203,13 +204,19 @@ final class SyncService: ObservableObject {
             activityId: activity.id,
             lapSegments: laps.map {
                 LapElevationSegment(
+                    lapIndex: $0.lapIndex,
+                    name: $0.name,
                     distance: $0.distance,
+                    movingTime: $0.movingTime,
+                    elapsedTime: $0.elapsedTime,
                     startIndex: $0.startIndex,
                     endIndex: $0.endIndex,
-                    positiveElevationGain: $0.totalElevationGain
+                    positiveElevationGain: $0.totalElevationGain,
+                    averageSpeed: $0.averageSpeed
                 )
             },
-            splitDistances: splits.map(\.distance)
+            splitDistances: splits.map(\.distance),
+            context: context
         ) else {
             return
         }
@@ -219,6 +226,10 @@ final class SyncService: ObservableObject {
             lap.negativeElevationLoss = breakdown.elevation.negative
             lap.averageWatts = breakdown.power?.average
             lap.maxWatts = breakdown.power?.max
+            lap.maxHeartrate = breakdown.maxHeartRate
+            lap.averageCadence = breakdown.averageCadence
+            lap.averageGrade = breakdown.averageGrade
+            lap.movingTimeFromStream = breakdown.movingTimeSeconds
         }
 
         for (split, breakdown) in zip(splits, breakdowns.splits) {
@@ -226,6 +237,10 @@ final class SyncService: ObservableObject {
             split.negativeElevationLoss = breakdown.elevation.negative
             split.averageWatts = breakdown.power?.average
             split.maxWatts = breakdown.power?.max
+            split.maxHeartrate = breakdown.maxHeartRate
+            split.averageCadence = breakdown.averageCadence
+            split.averageGrade = breakdown.averageGrade
+            split.movingTimeFromStream = breakdown.movingTimeSeconds
         }
 
         try context.save()
@@ -461,7 +476,27 @@ final class SyncService: ObservableObject {
             maxWatts: summary.maxWatts,
             kilojoules: summary.kilojoules,
             hasHeartrate: summary.hasHeartrate ?? false,
-            hasPowerMeter: summary.deviceWatts ?? false
+            hasPowerMeter: summary.deviceWatts ?? false,
+            workoutType: summary.workoutType,
+            calories: summary.calories,
+            gearId: summary.gearId,
+            trainer: summary.trainer ?? false,
+            manual: summary.manual ?? false,
+            isPrivate: summary.isPrivate ?? false,
+            flagged: summary.flagged ?? false,
+            elevHigh: summary.elevHigh,
+            elevLow: summary.elevLow,
+            startLatitude: summary.startLatlng?.first,
+            startLongitude: summary.startLatlng?.dropFirst().first,
+            endLatitude: summary.endLatlng?.first,
+            endLongitude: summary.endLatlng?.dropFirst().first,
+            summaryPolyline: summary.map?.summaryPolyline,
+            achievementCount: summary.achievementCount,
+            kudosCount: summary.kudosCount,
+            commentCount: summary.commentCount,
+            athleteCount: summary.athleteCount,
+            photoCount: summary.photoCount,
+            weightedAverageWatts: summary.weightedAverageWatts
         )
         
         // NO llamar a fetchActivityDetails aquí
@@ -477,14 +512,13 @@ final class SyncService: ObservableObject {
     private func fetchActivityDetails(activity: Activity, context: ModelContext, syncState: SyncState) async {
         do {
             let detail = try await fetchWithRetry {
-                try await self.api.getActivityDetail(id: activity.id)
+                try await self.api.getActivityDetail(id: activity.id, includeAllEfforts: true)
             }
             
-            // Actualizar campos adicionales
-            activity.activityDescription = detail.description
-            activity.deviceName = detail.deviceName
+            applyActivityMetadata(detail, to: activity)
             activity.detailsFetched = true
             await applyActivityDetail(detail, to: activity, context: context)
+            await fetchActivityEnrichment(activity: activity, detail: detail, context: context)
             
             try? await Task.sleep(nanoseconds: Constants.Sync.requestDelayMs)
             
@@ -521,6 +555,29 @@ final class SyncService: ObservableObject {
         activity.maxHeartrate = summary.maxHeartrate
         activity.averageWatts = summary.averageWatts
         activity.maxWatts = summary.maxWatts
+        activity.kilojoules = summary.kilojoules
+        activity.hasHeartrate = summary.hasHeartrate ?? activity.hasHeartrate
+        activity.hasPowerMeter = summary.deviceWatts ?? activity.hasPowerMeter
+        activity.workoutType = summary.workoutType ?? activity.workoutType
+        activity.calories = summary.calories ?? activity.calories
+        activity.gearId = summary.gearId ?? activity.gearId
+        activity.trainer = summary.trainer ?? activity.trainer
+        activity.manual = summary.manual ?? activity.manual
+        activity.isPrivate = summary.isPrivate ?? activity.isPrivate
+        activity.flagged = summary.flagged ?? activity.flagged
+        activity.elevHigh = summary.elevHigh ?? activity.elevHigh
+        activity.elevLow = summary.elevLow ?? activity.elevLow
+        activity.startLatitude = summary.startLatlng?.first ?? activity.startLatitude
+        activity.startLongitude = summary.startLatlng?.dropFirst().first ?? activity.startLongitude
+        activity.endLatitude = summary.endLatlng?.first ?? activity.endLatitude
+        activity.endLongitude = summary.endLatlng?.dropFirst().first ?? activity.endLongitude
+        activity.summaryPolyline = summary.map?.summaryPolyline ?? activity.summaryPolyline
+        activity.achievementCount = summary.achievementCount ?? activity.achievementCount
+        activity.kudosCount = summary.kudosCount ?? activity.kudosCount
+        activity.commentCount = summary.commentCount ?? activity.commentCount
+        activity.athleteCount = summary.athleteCount ?? activity.athleteCount
+        activity.photoCount = summary.photoCount ?? activity.photoCount
+        activity.weightedAverageWatts = summary.weightedAverageWatts ?? activity.weightedAverageWatts
         activity.syncedAt = Date()
     }
     
@@ -710,6 +767,36 @@ final class SyncService: ObservableObject {
         }
         activity.splitsMetric = nil
         activity.hasSplitsMetric = false
+
+        if let zones = activity.zones {
+            for zone in zones {
+                context.delete(zone)
+            }
+        }
+        activity.zones = nil
+        activity.zonesFetched = false
+
+        if let streamSummary = activity.streamSummary {
+            context.delete(streamSummary)
+        }
+        activity.streamSummary = nil
+        activity.streamsSummaryFetched = false
+
+        if let efforts = activity.segmentEfforts {
+            for effort in efforts {
+                context.delete(effort)
+            }
+        }
+        activity.segmentEfforts = nil
+        activity.segmentEffortsFetched = false
+
+        if let tempoSplits = activity.tempoBlockSplits {
+            for split in tempoSplits {
+                context.delete(split)
+            }
+        }
+        activity.tempoBlockSplits = nil
+        activity.gearFetched = false
         
         // Marcar como no fetcheado
         activity.detailsFetched = false
@@ -717,7 +804,7 @@ final class SyncService: ObservableObject {
         try context.save()
         
         // Volver a cargar desde Strava
-        let detail = try await api.getActivityDetail(id: activity.id)
+        let detail = try await api.getActivityDetail(id: activity.id, includeAllEfforts: true)
         
         // Debug: mostrar datos raw de Strava
         printStravaDebug(detail: detail, activityName: activity.name)
@@ -729,11 +816,10 @@ final class SyncService: ObservableObject {
             print("Updated startDateLocal: \(localDateStr)")
         }
         
-        // Actualizar campos adicionales
-        activity.activityDescription = detail.description
-        activity.deviceName = detail.deviceName
+        applyActivityMetadata(detail, to: activity)
         activity.detailsFetched = true
         await applyActivityDetail(detail, to: activity, context: context)
+        await fetchActivityEnrichment(activity: activity, detail: detail, context: context)
         
         try context.save()
         
@@ -784,13 +870,19 @@ final class SyncService: ObservableObject {
             activityId: activity.id,
             lapSegments: lapPayloads.map {
                 LapElevationSegment(
+                    lapIndex: $0.lapIndex,
+                    name: $0.name,
                     distance: $0.distance,
+                    movingTime: $0.movingTime,
+                    elapsedTime: $0.elapsedTime,
                     startIndex: $0.startIndex,
                     endIndex: $0.endIndex,
-                    positiveElevationGain: $0.totalElevationGain ?? 0
+                    positiveElevationGain: $0.totalElevationGain ?? 0,
+                    averageSpeed: $0.averageSpeed
                 )
             },
-            splitDistances: splitPayloads.map(\.distance)
+            splitDistances: splitPayloads.map(\.distance),
+            context: context
         )
 
         activity.hasLaps = !lapPayloads.isEmpty
@@ -814,6 +906,10 @@ final class SyncService: ObservableObject {
                 negativeElevationLoss: breakdown?.elevation.negative,
                 averageWatts: lap.averageWatts ?? breakdown?.power?.average,
                 maxWatts: breakdown?.power?.max,
+                maxHeartrate: lap.maxHeartrate,
+                averageCadence: lap.averageCadence,
+                averageGrade: breakdown?.averageGrade,
+                movingTimeFromStream: breakdown?.movingTimeSeconds,
                 activity: activity
             )
             context.insert(activityLap)
@@ -833,10 +929,142 @@ final class SyncService: ObservableObject {
                 negativeElevationLoss: breakdown?.elevation.negative,
                 averageWatts: split.averageWatts ?? breakdown?.power?.average,
                 maxWatts: breakdown?.power?.max,
+                maxHeartrate: split.maxHeartrate,
+                averageCadence: breakdown?.averageCadence,
+                averageGrade: breakdown?.averageGrade,
+                movingTimeFromStream: breakdown?.movingTimeSeconds,
                 paceZone: split.paceZone,
                 activity: activity
             )
             context.insert(activitySplit)
+        }
+
+        if let efforts = detail.segmentEfforts {
+            for effort in efforts {
+                let model = ActivitySegmentEffort(
+                    id: effort.id,
+                    name: effort.name,
+                    segmentId: effort.segment?.id,
+                    distance: effort.distance,
+                    elapsedTime: effort.elapsedTime,
+                    movingTime: effort.movingTime,
+                    startIndex: effort.startIndex,
+                    endIndex: effort.endIndex,
+                    averageHeartrate: effort.averageHeartrate,
+                    maxHeartrate: effort.maxHeartrate,
+                    averageWatts: effort.averageWatts,
+                    prRank: effort.prRank,
+                    komRank: effort.komRank,
+                    isKom: effort.isKom ?? false,
+                    hidden: effort.hidden ?? false,
+                    activity: activity
+                )
+                context.insert(model)
+            }
+            activity.segmentEffortsFetched = true
+        }
+    }
+
+    private func applyActivityMetadata(_ detail: StravaActivityDetail, to activity: Activity) {
+        activity.name = detail.name
+        activity.sportType = detail.sportType
+        activity.distance = detail.distance
+        activity.movingTime = detail.movingTime
+        activity.elapsedTime = detail.elapsedTime
+        activity.totalElevationGain = detail.totalElevationGain
+        activity.averageSpeed = detail.averageSpeed
+        activity.maxSpeed = detail.maxSpeed
+        activity.averageHeartrate = detail.averageHeartrate
+        activity.maxHeartrate = detail.maxHeartrate
+        activity.averageWatts = detail.averageWatts
+        activity.maxWatts = detail.maxWatts
+        activity.kilojoules = detail.kilojoules
+        activity.hasHeartrate = detail.hasHeartrate ?? activity.hasHeartrate
+        activity.hasPowerMeter = detail.deviceWatts ?? activity.hasPowerMeter
+        activity.activityDescription = detail.description
+        activity.deviceName = detail.deviceName
+        activity.workoutType = detail.workoutType
+        activity.calories = detail.calories
+        activity.gearId = detail.gearId
+        activity.trainer = detail.trainer ?? false
+        activity.manual = detail.manual ?? false
+        activity.isPrivate = detail.isPrivate ?? false
+        activity.flagged = detail.flagged ?? false
+        activity.elevHigh = detail.elevHigh
+        activity.elevLow = detail.elevLow
+        activity.startLatitude = detail.startLatlng?.first
+        activity.startLongitude = detail.startLatlng?.dropFirst().first
+        activity.endLatitude = detail.endLatlng?.first
+        activity.endLongitude = detail.endLatlng?.dropFirst().first
+        activity.summaryPolyline = detail.map?.summaryPolyline ?? detail.map?.polyline
+        activity.achievementCount = detail.achievementCount
+        activity.kudosCount = detail.kudosCount
+        activity.commentCount = detail.commentCount
+        activity.athleteCount = detail.athleteCount
+        activity.photoCount = detail.photoCount
+        activity.weightedAverageWatts = detail.weightedAverageWatts
+        if let localDate = parseStravaDateLocal(detail.startDateLocal) {
+            activity.startDateLocal = localDate
+        }
+    }
+
+    private func fetchActivityEnrichment(activity: Activity, detail: StravaActivityDetail, context: ModelContext) async {
+        await fetchActivityZonesIfNeeded(activity: activity, context: context)
+        await fetchGearIfNeeded(activity: activity, detail: detail, context: context)
+    }
+
+    private func fetchActivityZonesIfNeeded(activity: Activity, context: ModelContext) async {
+        guard !activity.zonesFetched else { return }
+        do {
+            let zones = try await api.getActivityZones(id: activity.id)
+            if let oldZones = activity.zones {
+                for zone in oldZones {
+                    context.delete(zone)
+                }
+            }
+            activity.zones = []
+            for zone in zones {
+                let distributionJSON = zoneDistributionJSON(zone.distributionBuckets)
+                let model = ActivityZoneDistribution(
+                    zoneType: zone.type,
+                    sensorBased: zone.sensorBased,
+                    score: zone.score,
+                    distributionJSON: distributionJSON,
+                    activity: activity
+                )
+                context.insert(model)
+            }
+            activity.zonesFetched = true
+        } catch {
+            print("No se pudieron cargar zonas para actividad \(activity.id): \(error)")
+        }
+    }
+
+    private func fetchGearIfNeeded(activity: Activity, detail: StravaActivityDetail, context: ModelContext) async {
+        guard let gearId = detail.gearId ?? activity.gearId, !gearId.isEmpty else { return }
+        activity.gearId = gearId
+        do {
+            let descriptor = FetchDescriptor<StravaGear>(predicate: #Predicate { $0.id == gearId })
+            if let existing = try? context.fetch(descriptor).first {
+                activity.gear = existing
+                activity.gearFetched = true
+                return
+            }
+
+            let gear = try await api.getGear(id: gearId)
+            let model = StravaGear(
+                id: gear.id,
+                name: gear.name,
+                brandName: gear.brandName,
+                modelName: gear.modelName,
+                distanceMeters: gear.distance,
+                retired: gear.retired ?? false
+            )
+            context.insert(model)
+            activity.gear = model
+            activity.gearFetched = true
+        } catch {
+            print("No se pudo cargar gear \(gearId): \(error)")
         }
     }
 
@@ -844,7 +1072,8 @@ final class SyncService: ObservableObject {
         activity: Activity,
         activityId: Int64,
         lapSegments: [LapElevationSegment],
-        splitDistances: [Double]
+        splitDistances: [Double],
+        context: ModelContext
     ) async -> (laps: [MetricBreakdown], splits: [MetricBreakdown])? {
         guard !lapSegments.isEmpty || !splitDistances.isEmpty else { return nil }
 
@@ -866,6 +1095,12 @@ final class SyncService: ObservableObject {
 
             let timeStream = streams.time?.data
             let wattsStream = shouldFetchPower ? streams.watts?.data : nil
+            let heartRateStream = streams.heartrate?.data
+            let cadenceStream = streams.cadence?.data
+            let gradeStream = streams.gradeSmooth?.data
+            let movingStream = streams.moving?.data
+            let velocityStream = streams.velocitySmooth?.data
+            let temperatureStream = streams.temp?.data
 
             print("\n---------- STRAVA STREAMS SUMMARY ----------")
             print("Activity ID: \(activityId)")
@@ -873,6 +1108,8 @@ final class SyncService: ObservableObject {
             print("altitude stream: \(altitudeStream.count) puntos")
             print("time stream: \(timeStream?.count ?? 0) puntos")
             print("watts stream: \(wattsStream?.count ?? 0) puntos")
+            print("heartrate stream: \(heartRateStream?.count ?? 0) puntos")
+            print("cadence stream: \(cadenceStream?.count ?? 0) puntos")
             if let firstDistance = distanceStream.first, let lastDistance = distanceStream.last {
                 print("distance first/last: \(firstDistance)m -> \(lastDistance)m")
             }
@@ -897,10 +1134,21 @@ final class SyncService: ObservableObject {
                     wattsStream: $0
                 )
             } ?? []
+            let lapStreamBreakdowns = calculateIndexStreamBreakdowns(
+                indexRanges: lapSegments.map { ($0.startIndex, $0.endIndex) },
+                heartRateStream: heartRateStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            )
             let lapBreakdownsWithPower = lapBreakdowns.enumerated().map { index, elevation in
                 MetricBreakdown(
                     elevation: elevation,
-                    power: lapPowerBreakdowns.indices.contains(index) ? lapPowerBreakdowns[index] : nil
+                    power: lapPowerBreakdowns.indices.contains(index) ? lapPowerBreakdowns[index] : nil,
+                    maxHeartRate: lapStreamBreakdowns.indices.contains(index) ? lapStreamBreakdowns[index].maxHeartRate : nil,
+                    averageCadence: lapStreamBreakdowns.indices.contains(index) ? lapStreamBreakdowns[index].averageCadence : nil,
+                    averageGrade: lapStreamBreakdowns.indices.contains(index) ? lapStreamBreakdowns[index].averageGrade : nil,
+                    movingTimeSeconds: lapStreamBreakdowns.indices.contains(index) ? lapStreamBreakdowns[index].movingTimeSeconds : nil
                 )
             }
 
@@ -926,12 +1174,58 @@ final class SyncService: ObservableObject {
                     wattsStream: $0
                 )
             } ?? []
+            let splitStreamBreakdowns = calculateSequentialStreamBreakdowns(
+                segmentDistances: splitDistances,
+                distanceStream: distanceStream,
+                heartRateStream: heartRateStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            )
             let splitBreakdownsWithPower = splitBreakdowns.enumerated().map { index, elevation in
                 MetricBreakdown(
                     elevation: elevation,
-                    power: splitPowerBreakdowns.indices.contains(index) ? splitPowerBreakdowns[index] : nil
+                    power: splitPowerBreakdowns.indices.contains(index) ? splitPowerBreakdowns[index] : nil,
+                    maxHeartRate: splitStreamBreakdowns.indices.contains(index) ? splitStreamBreakdowns[index].maxHeartRate : nil,
+                    averageCadence: splitStreamBreakdowns.indices.contains(index) ? splitStreamBreakdowns[index].averageCadence : nil,
+                    averageGrade: splitStreamBreakdowns.indices.contains(index) ? splitStreamBreakdowns[index].averageGrade : nil,
+                    movingTimeSeconds: splitStreamBreakdowns.indices.contains(index) ? splitStreamBreakdowns[index].movingTimeSeconds : nil
                 )
             }
+
+            if let summary = buildStreamSummary(
+                timeStream: timeStream,
+                distanceStream: distanceStream,
+                heartRateStream: heartRateStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream,
+                velocityStream: velocityStream,
+                temperatureStream: temperatureStream
+            ) {
+                if let oldSummary = activity.streamSummary {
+                    activity.streamSummary = nil
+                    context.delete(oldSummary)
+                }
+                summary.activity = activity
+                context.insert(summary)
+                activity.streamSummary = summary
+                activity.streamsSummaryFetched = true
+            }
+
+            rebuildTempoBlockSplits(
+                activity: activity,
+                lapSegments: lapSegments,
+                distanceStream: distanceStream,
+                timeStream: timeStream,
+                altitudeStream: altitudeStream,
+                heartRateStream: heartRateStream,
+                wattsStream: wattsStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream,
+                context: context
+            )
 
             if !splitDistances.isEmpty {
                 print("SPLIT BREAKDOWNS:")
@@ -955,16 +1249,479 @@ final class SyncService: ObservableObject {
         ["run", "trailrun", "virtualrun"].contains(sportType.lowercased())
     }
 
+    private func rebuildTempoBlockSplits(
+        activity: Activity,
+        lapSegments: [LapElevationSegment],
+        distanceStream: [Double],
+        timeStream: [Int]?,
+        altitudeStream: [Double],
+        heartRateStream: [Int]?,
+        wattsStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?,
+        context: ModelContext
+    ) {
+        if let oldSplits = activity.tempoBlockSplits {
+            for split in oldSplits {
+                context.delete(split)
+            }
+        }
+        activity.tempoBlockSplits = []
+
+        guard
+            isRunSportType(activity.sportType),
+            let tempoLap = tempoCandidate(from: lapSegments),
+            let generated = tempoBlockSplits(
+                activity: activity,
+                lap: tempoLap,
+                distanceStream: distanceStream,
+                timeStream: timeStream,
+                altitudeStream: altitudeStream,
+                heartRateStream: heartRateStream,
+                wattsStream: wattsStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            ),
+            !generated.isEmpty
+        else {
+            return
+        }
+
+        for split in generated {
+            context.insert(split)
+        }
+        activity.tempoBlockSplits = generated
+    }
+
+    private func tempoCandidate(from laps: [LapElevationSegment]) -> LapElevationSegment? {
+        guard laps.count >= 3 else { return nil }
+
+        let namedTempo = laps.first { lap in
+            let normalizedName = (lap.name ?? "").lowercased()
+            return lap.distance >= 2_000 &&
+                lap.movingTime >= 600 &&
+                (normalizedName.contains("tempo") ||
+                 normalizedName.contains("ritmo") ||
+                 normalizedName.contains("threshold") ||
+                 normalizedName.contains("umbral"))
+        }
+        if let namedTempo {
+            return namedTempo
+        }
+
+        if laps.count == 3 {
+            let warmup = laps[0]
+            let tempo = laps[1]
+            let cooldown = laps[2]
+            let tempoIsSustained = tempo.distance >= 2_000 && tempo.movingTime >= 600
+            let tempoIsFaster = tempo.averageSpeed > warmup.averageSpeed * 1.08 &&
+                tempo.averageSpeed > cooldown.averageSpeed * 1.08
+            if tempoIsSustained && tempoIsFaster {
+                return tempo
+            }
+        }
+
+        return laps.dropFirst().dropLast()
+            .filter { $0.distance >= 2_000 && $0.movingTime >= 600 }
+            .max { $0.averageSpeed < $1.averageSpeed }
+    }
+
+    private func tempoBlockSplits(
+        activity: Activity,
+        lap: LapElevationSegment,
+        distanceStream: [Double],
+        timeStream: [Int]?,
+        altitudeStream: [Double],
+        heartRateStream: [Int]?,
+        wattsStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?
+    ) -> [ActivityTempoBlockSplit]? {
+        let startIndex = min(max(lap.startIndex, 0), max(distanceStream.count - 1, 0))
+        let endIndex = min(max(lap.endIndex, startIndex), distanceStream.count - 1)
+        guard startIndex < endIndex else { return nil }
+
+        let lapStartDistance = distanceStream[startIndex]
+        let lapEndDistance = lapStartDistance + lap.distance
+        guard lap.distance >= 1_500 else { return nil }
+
+        let fullLapIndexes = Array(startIndex...endIndex)
+        let fullLapElevation = elevationBreakdown(altitudes: values(from: altitudeStream, indexes: fullLapIndexes))
+        let targetPositiveElevation = lap.positiveElevationGain
+        let targetNegativeElevation = fullLapElevation.negative
+        let fullLapMovingValues = values(from: movingStream, indexes: fullLapIndexes)
+        let targetMovingTime = fullLapMovingValues.isEmpty ? lap.movingTime : fullLapMovingValues.filter { $0 }.count
+
+        var splits: [ActivityTempoBlockSplit] = []
+        var chunkStart = lapStartDistance
+        var splitIndex = 1
+
+        while chunkStart < lapEndDistance {
+            let chunkEnd = min(chunkStart + 1_000, lapEndDistance)
+            let chunkDistance = chunkEnd - chunkStart
+            guard chunkDistance >= 250 else { break }
+
+            let indexes = (startIndex...endIndex).filter {
+                distanceStream[$0] >= chunkStart && distanceStream[$0] <= chunkEnd
+            }
+            if let model = tempoBlockSplit(
+                activity: activity,
+                lap: lap,
+                splitIndex: splitIndex,
+                distance: chunkDistance,
+                startDistance: chunkStart - lapStartDistance,
+                endDistance: chunkEnd - lapStartDistance,
+                indexes: indexes,
+                timeStream: timeStream,
+                altitudeStream: altitudeStream,
+                heartRateStream: heartRateStream,
+                wattsStream: wattsStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            ) {
+                splits.append(model)
+                splitIndex += 1
+            }
+
+            chunkStart = chunkEnd
+        }
+
+        normalizeTempoSplits(
+            &splits,
+            targetDistance: lap.distance,
+            targetMovingTime: targetMovingTime,
+            targetPositiveElevation: targetPositiveElevation,
+            targetNegativeElevation: targetNegativeElevation
+        )
+
+        return splits.count >= 2 ? splits : nil
+    }
+
+    private func normalizeTempoSplits(
+        _ splits: inout [ActivityTempoBlockSplit],
+        targetDistance: Double,
+        targetMovingTime: Int,
+        targetPositiveElevation: Double,
+        targetNegativeElevation: Double
+    ) {
+        guard !splits.isEmpty, let last = splits.last else { return }
+
+        let previousDistance = splits.dropLast().reduce(0.0) { $0 + $1.distance }
+        let previousMovingTime = splits.dropLast().reduce(0) { $0 + $1.movingTime }
+
+        last.distance = max(targetDistance - previousDistance, 0)
+        last.endDistance = targetDistance
+        last.movingTime = max(targetMovingTime - previousMovingTime, 0)
+        last.elapsedTime = last.movingTime
+        if last.movingTime > 0 {
+            last.averageSpeed = last.distance / Double(last.movingTime)
+        }
+
+        normalizeElevation(
+            splits: splits,
+            targetPositiveElevation: targetPositiveElevation,
+            targetNegativeElevation: targetNegativeElevation
+        )
+    }
+
+    private func normalizeElevation(
+        splits: [ActivityTempoBlockSplit],
+        targetPositiveElevation: Double,
+        targetNegativeElevation: Double
+    ) {
+        guard !splits.isEmpty else { return }
+
+        let positiveTotal = splits.reduce(0.0) { $0 + $1.positiveElevationGain }
+        let negativeTotal = splits.reduce(0.0) { $0 + $1.negativeElevationLoss }
+        let positiveScale = positiveTotal > 0 ? targetPositiveElevation / positiveTotal : 1
+        let negativeScale = negativeTotal > 0 ? targetNegativeElevation / negativeTotal : 1
+
+        for split in splits {
+            split.positiveElevationGain *= positiveScale
+            split.negativeElevationLoss *= negativeScale
+        }
+
+        if let last = splits.last {
+            let previousPositive = splits.dropLast().reduce(0.0) { $0 + $1.positiveElevationGain }
+            let previousNegative = splits.dropLast().reduce(0.0) { $0 + $1.negativeElevationLoss }
+            last.positiveElevationGain = max(targetPositiveElevation - previousPositive, 0)
+            last.negativeElevationLoss = max(targetNegativeElevation - previousNegative, 0)
+        }
+
+        for split in splits {
+            split.elevationDifference = split.positiveElevationGain - split.negativeElevationLoss
+        }
+    }
+
+    private func tempoBlockSplit(
+        activity: Activity,
+        lap: LapElevationSegment,
+        splitIndex: Int,
+        distance: Double,
+        startDistance: Double,
+        endDistance: Double,
+        indexes: [Int],
+        timeStream: [Int]?,
+        altitudeStream: [Double],
+        heartRateStream: [Int]?,
+        wattsStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?
+    ) -> ActivityTempoBlockSplit? {
+        guard indexes.count >= 2, let firstIndex = indexes.first, let lastIndex = indexes.last else {
+            return nil
+        }
+
+        let elapsedTime = elapsedSeconds(timeStream: timeStream, firstIndex: firstIndex, lastIndex: lastIndex)
+        guard elapsedTime > 0 else { return nil }
+
+        let movingValues = values(from: movingStream, indexes: indexes)
+        let movingTime = movingValues.isEmpty ? elapsedTime : movingValues.filter { $0 }.count
+        let paceTime = max(movingTime, 1)
+        let altitudes = values(from: altitudeStream, indexes: indexes)
+        let elevation = elevationBreakdown(altitudes: altitudes)
+        let heartRates = values(from: heartRateStream, indexes: indexes).map(Double.init)
+        let watts = values(from: wattsStream, indexes: indexes).map(Double.init)
+        let cadences = values(from: cadenceStream, indexes: indexes).map(Double.init)
+        let grades = values(from: gradeStream, indexes: indexes)
+
+        return ActivityTempoBlockSplit(
+            blockLapIndex: lap.lapIndex,
+            splitIndex: splitIndex,
+            name: "Tempo \(splitIndex)",
+            distance: distance,
+            elapsedTime: elapsedTime,
+            movingTime: movingTime,
+            averageSpeed: distance / Double(paceTime),
+            elevationDifference: (altitudes.last ?? 0) - (altitudes.first ?? 0),
+            positiveElevationGain: elevation.positive,
+            negativeElevationLoss: elevation.negative,
+            averageHeartrate: average(heartRates),
+            maxHeartrate: heartRates.max(),
+            averageWatts: average(watts),
+            maxWatts: watts.max(),
+            averageCadence: average(cadences),
+            averageGrade: average(grades),
+            startDistance: startDistance,
+            endDistance: endDistance,
+            activity: activity
+        )
+    }
+
+    private func elapsedSeconds(timeStream: [Int]?, firstIndex: Int, lastIndex: Int) -> Int {
+        guard
+            let timeStream,
+            timeStream.indices.contains(firstIndex),
+            timeStream.indices.contains(lastIndex)
+        else {
+            return max(lastIndex - firstIndex, 0)
+        }
+        return max(timeStream[lastIndex] - timeStream[firstIndex], 0)
+    }
+
+    private func elevationBreakdown(altitudes: [Double]) -> ElevationBreakdown {
+        guard altitudes.count >= 2 else {
+            return ElevationBreakdown(positive: 0, negative: 0)
+        }
+
+        var positive = 0.0
+        var negative = 0.0
+        for index in 1..<altitudes.count {
+            let delta = altitudes[index] - altitudes[index - 1]
+            if delta > 0 {
+                positive += delta
+            } else {
+                negative += abs(delta)
+            }
+        }
+        return ElevationBreakdown(positive: positive, negative: negative)
+    }
+
+    private func zoneDistributionJSON(_ buckets: [StravaZoneBucket]) -> String {
+        let payload = buckets.map { ["min": $0.min, "max": $0.max, "time": $0.time] }
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]),
+            let json = String(data: data, encoding: .utf8)
+        else {
+            return "[]"
+        }
+        return json
+    }
+
+    private func calculateIndexStreamBreakdowns(
+        indexRanges: [(Int, Int)],
+        heartRateStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?
+    ) -> [SegmentStreamBreakdown] {
+        indexRanges.map { range in
+            let start = max(range.0, 0)
+            let end = max(range.1, start)
+            return streamBreakdown(
+                indexes: Array(start...end),
+                heartRateStream: heartRateStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            )
+        }
+    }
+
+    private func calculateSequentialStreamBreakdowns(
+        segmentDistances: [Double],
+        distanceStream: [Double],
+        heartRateStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?
+    ) -> [SegmentStreamBreakdown] {
+        var startDistance = 0.0
+        return segmentDistances.map { segmentDistance in
+            let endDistance = startDistance + max(segmentDistance, 0)
+            let indexes = distanceStream.indices.filter {
+                distanceStream[$0] >= startDistance && distanceStream[$0] <= endDistance
+            }
+            startDistance = endDistance
+            return streamBreakdown(
+                indexes: indexes,
+                heartRateStream: heartRateStream,
+                cadenceStream: cadenceStream,
+                gradeStream: gradeStream,
+                movingStream: movingStream
+            )
+        }
+    }
+
+    private func streamBreakdown(
+        indexes: [Int],
+        heartRateStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?
+    ) -> SegmentStreamBreakdown {
+        let heartRates = values(from: heartRateStream, indexes: indexes).map(Double.init)
+        let cadences = values(from: cadenceStream, indexes: indexes).map(Double.init)
+        let grades = values(from: gradeStream, indexes: indexes)
+        let movingValues = values(from: movingStream, indexes: indexes)
+
+        return SegmentStreamBreakdown(
+            maxHeartRate: heartRates.max(),
+            averageCadence: average(cadences),
+            averageGrade: average(grades),
+            movingTimeSeconds: movingValues.isEmpty ? nil : movingValues.filter { $0 }.count
+        )
+    }
+
+    private func buildStreamSummary(
+        timeStream: [Int]?,
+        distanceStream: [Double],
+        heartRateStream: [Int]?,
+        cadenceStream: [Int]?,
+        gradeStream: [Double]?,
+        movingStream: [Bool]?,
+        velocityStream: [Double]?,
+        temperatureStream: [Int]?
+    ) -> ActivityStreamSummary? {
+        let cadences = cadenceStream?.map(Double.init) ?? []
+        let grades = gradeStream ?? []
+        let movingValues = movingStream ?? []
+        let movingCount = movingValues.filter { $0 }.count
+        let stoppedCount = movingValues.isEmpty ? nil : max(movingValues.count - movingCount, 0)
+        let movingRatio = movingValues.isEmpty ? nil : Double(movingCount) / Double(movingValues.count)
+        let movingSpeeds = zip(velocityStream ?? [], movingValues.isEmpty ? Array(repeating: true, count: velocityStream?.count ?? 0) : movingValues)
+            .compactMap { speed, isMoving in isMoving && speed > 0 ? speed : nil }
+        let avgMovingSpeed = average(movingSpeeds)
+        let cardiacDrift = cardiacDriftPercent(heartRateStream: heartRateStream, distanceStream: distanceStream)
+
+        guard !cadences.isEmpty || !grades.isEmpty || movingRatio != nil || avgMovingSpeed != nil || cardiacDrift != nil || temperatureStream != nil || timeStream != nil else {
+            return nil
+        }
+
+        return ActivityStreamSummary(
+            averageCadence: average(cadences),
+            maxCadence: cadences.max(),
+            averageGrade: average(grades),
+            maxGrade: grades.max(),
+            minGrade: grades.min(),
+            movingRatio: movingRatio,
+            stoppedTimeSeconds: stoppedCount,
+            averageMovingPaceSecondsPerKm: avgMovingSpeed.map { Int((1000 / $0).rounded()) },
+            cardiacDriftPercent: cardiacDrift,
+            averageTemperature: average(temperatureStream?.map(Double.init) ?? [])
+        )
+    }
+
+    private func cardiacDriftPercent(heartRateStream: [Int]?, distanceStream: [Double]) -> Double? {
+        guard let heartRateStream, heartRateStream.count > 10, heartRateStream.count == distanceStream.count else {
+            return nil
+        }
+        let midpoint = heartRateStream.count / 2
+        let firstHalf = heartRateStream[..<midpoint].map(Double.init)
+        let secondHalf = heartRateStream[midpoint...].map(Double.init)
+        guard let firstAverage = average(Array(firstHalf)), firstAverage > 0, let secondAverage = average(Array(secondHalf)) else {
+            return nil
+        }
+        return ((secondAverage - firstAverage) / firstAverage) * 100
+    }
+
+    private func values<T>(from source: [T]?, indexes: [Int]) -> [T] {
+        guard let source else { return [] }
+        return indexes.compactMap { source.indices.contains($0) ? source[$0] : nil }
+    }
+
+    private func average(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
     private struct MetricBreakdown {
         let elevation: ElevationBreakdown
         let power: PowerBreakdown?
+        let maxHeartRate: Double?
+        let averageCadence: Double?
+        let averageGrade: Double?
+        let movingTimeSeconds: Int?
+
+        init(
+            elevation: ElevationBreakdown,
+            power: PowerBreakdown? = nil,
+            maxHeartRate: Double? = nil,
+            averageCadence: Double? = nil,
+            averageGrade: Double? = nil,
+            movingTimeSeconds: Int? = nil
+        ) {
+            self.elevation = elevation
+            self.power = power
+            self.maxHeartRate = maxHeartRate
+            self.averageCadence = averageCadence
+            self.averageGrade = averageGrade
+            self.movingTimeSeconds = movingTimeSeconds
+        }
+    }
+
+    private struct SegmentStreamBreakdown {
+        let maxHeartRate: Double?
+        let averageCadence: Double?
+        let averageGrade: Double?
+        let movingTimeSeconds: Int?
     }
 
     private struct LapElevationSegment {
+        let lapIndex: Int
+        let name: String?
         let distance: Double
+        let movingTime: Int
+        let elapsedTime: Int
         let startIndex: Int
         let endIndex: Int
         let positiveElevationGain: Double
+        let averageSpeed: Double
     }
 
     /// Imprime los datos almacenados de una actividad
@@ -999,4 +1756,3 @@ final class SyncService: ObservableObject {
         print("---------- END STORED DATA ----------\n")
     }
 }
-

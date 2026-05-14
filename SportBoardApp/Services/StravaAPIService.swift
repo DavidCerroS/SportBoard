@@ -39,9 +39,27 @@ struct StravaActivitySummary: Codable {
     let kilojoules: Double?
     let hasHeartrate: Bool?
     let deviceWatts: Bool?
+    let workoutType: Int?
+    let calories: Double?
+    let gearId: String?
+    let trainer: Bool?
+    let manual: Bool?
+    let isPrivate: Bool?
+    let flagged: Bool?
+    let elevHigh: Double?
+    let elevLow: Double?
+    let startLatlng: [Double]?
+    let endLatlng: [Double]?
+    let map: StravaMap?
+    let achievementCount: Int?
+    let kudosCount: Int?
+    let commentCount: Int?
+    let athleteCount: Int?
+    let photoCount: Int?
+    let weightedAverageWatts: Double?
     
     enum CodingKeys: String, CodingKey {
-        case id, name, distance, kilojoules
+        case id, name, distance, kilojoules, calories, trainer, manual, flagged, map
         case sportType = "sport_type"
         case startDate = "start_date"
         case startDateLocal = "start_date_local"
@@ -56,6 +74,30 @@ struct StravaActivitySummary: Codable {
         case maxWatts = "max_watts"
         case hasHeartrate = "has_heartrate"
         case deviceWatts = "device_watts"
+        case workoutType = "workout_type"
+        case gearId = "gear_id"
+        case isPrivate = "private"
+        case elevHigh = "elev_high"
+        case elevLow = "elev_low"
+        case startLatlng = "start_latlng"
+        case endLatlng = "end_latlng"
+        case achievementCount = "achievement_count"
+        case kudosCount = "kudos_count"
+        case commentCount = "comment_count"
+        case athleteCount = "athlete_count"
+        case photoCount = "photo_count"
+        case weightedAverageWatts = "weighted_average_watts"
+    }
+}
+
+struct StravaMap: Codable, Sendable {
+    let id: String?
+    let polyline: String?
+    let summaryPolyline: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, polyline
+        case summaryPolyline = "summary_polyline"
     }
 }
 
@@ -80,8 +122,27 @@ struct StravaActivityDetail: Codable, Sendable {
     let deviceWatts: Bool?
     let description: String?
     let deviceName: String?
+    let workoutType: Int?
+    let calories: Double?
+    let gearId: String?
+    let trainer: Bool?
+    let manual: Bool?
+    let isPrivate: Bool?
+    let flagged: Bool?
+    let elevHigh: Double?
+    let elevLow: Double?
+    let startLatlng: [Double]?
+    let endLatlng: [Double]?
+    let map: StravaMap?
+    let achievementCount: Int?
+    let kudosCount: Int?
+    let commentCount: Int?
+    let athleteCount: Int?
+    let photoCount: Int?
+    let weightedAverageWatts: Double?
     let laps: [StravaLap]?
     let splitsMetric: [StravaSplit]?
+    let segmentEfforts: [StravaSegmentEffort]?
 
     nonisolated init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -105,12 +166,31 @@ struct StravaActivityDetail: Codable, Sendable {
         deviceWatts = try c.decodeIfPresent(Bool.self, forKey: .deviceWatts)
         description = try c.decodeIfPresent(String.self, forKey: .description)
         deviceName = try c.decodeIfPresent(String.self, forKey: .deviceName)
+        workoutType = try c.decodeIfPresent(Int.self, forKey: .workoutType)
+        calories = try c.decodeIfPresent(Double.self, forKey: .calories)
+        gearId = try c.decodeIfPresent(String.self, forKey: .gearId)
+        trainer = try c.decodeIfPresent(Bool.self, forKey: .trainer)
+        manual = try c.decodeIfPresent(Bool.self, forKey: .manual)
+        isPrivate = try c.decodeIfPresent(Bool.self, forKey: .isPrivate)
+        flagged = try c.decodeIfPresent(Bool.self, forKey: .flagged)
+        elevHigh = try c.decodeIfPresent(Double.self, forKey: .elevHigh)
+        elevLow = try c.decodeIfPresent(Double.self, forKey: .elevLow)
+        startLatlng = try c.decodeIfPresent([Double].self, forKey: .startLatlng)
+        endLatlng = try c.decodeIfPresent([Double].self, forKey: .endLatlng)
+        map = try c.decodeIfPresent(StravaMap.self, forKey: .map)
+        achievementCount = try c.decodeIfPresent(Int.self, forKey: .achievementCount)
+        kudosCount = try c.decodeIfPresent(Int.self, forKey: .kudosCount)
+        commentCount = try c.decodeIfPresent(Int.self, forKey: .commentCount)
+        athleteCount = try c.decodeIfPresent(Int.self, forKey: .athleteCount)
+        photoCount = try c.decodeIfPresent(Int.self, forKey: .photoCount)
+        weightedAverageWatts = try c.decodeIfPresent(Double.self, forKey: .weightedAverageWatts)
         laps = try c.decodeIfPresent([StravaLap].self, forKey: .laps)
         splitsMetric = try c.decodeIfPresent([StravaSplit].self, forKey: .splitsMetric)
+        segmentEfforts = try c.decodeIfPresent([StravaSegmentEffort].self, forKey: .segmentEfforts)
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, distance, kilojoules, description
+        case id, name, distance, kilojoules, description, calories, trainer, manual, flagged, map
         case sportType = "sport_type"
         case startDate = "start_date"
         case startDateLocal = "start_date_local"
@@ -126,8 +206,22 @@ struct StravaActivityDetail: Codable, Sendable {
         case hasHeartrate = "has_heartrate"
         case deviceWatts = "device_watts"
         case deviceName = "device_name"
+        case workoutType = "workout_type"
+        case gearId = "gear_id"
+        case isPrivate = "private"
+        case elevHigh = "elev_high"
+        case elevLow = "elev_low"
+        case startLatlng = "start_latlng"
+        case endLatlng = "end_latlng"
+        case achievementCount = "achievement_count"
+        case kudosCount = "kudos_count"
+        case commentCount = "comment_count"
+        case athleteCount = "athlete_count"
+        case photoCount = "photo_count"
+        case weightedAverageWatts = "weighted_average_watts"
         case laps
         case splitsMetric = "splits_metric"
+        case segmentEfforts = "segment_efforts"
     }
 }
 
@@ -144,6 +238,8 @@ struct StravaLap: Codable {
     let maxSpeed: Double
     let averageHeartrate: Double?
     let maxHeartrate: Double?
+    let averageCadence: Double?
+    let paceZone: Int?
     let averageWatts: Double?
     let totalElevationGain: Double?
     
@@ -158,6 +254,8 @@ struct StravaLap: Codable {
         case maxSpeed = "max_speed"
         case averageHeartrate = "average_heartrate"
         case maxHeartrate = "max_heartrate"
+        case averageCadence = "average_cadence"
+        case paceZone = "pace_zone"
         case averageWatts = "average_watts"
         case totalElevationGain = "total_elevation_gain"
     }
@@ -197,6 +295,89 @@ struct StravaActivityStreamsResponse: Codable {
     let distance: StravaStreamSeries<Double>?
     let altitude: StravaStreamSeries<Double>?
     let watts: StravaStreamSeries<Int>?
+    let heartrate: StravaStreamSeries<Int>?
+    let cadence: StravaStreamSeries<Int>?
+    let velocitySmooth: StravaStreamSeries<Double>?
+    let moving: StravaStreamSeries<Bool>?
+    let gradeSmooth: StravaStreamSeries<Double>?
+    let temp: StravaStreamSeries<Int>?
+
+    enum CodingKeys: String, CodingKey {
+        case time, distance, altitude, watts, heartrate, cadence, moving, temp
+        case velocitySmooth = "velocity_smooth"
+        case gradeSmooth = "grade_smooth"
+    }
+}
+
+struct StravaActivityZone: Codable {
+    let type: String
+    let sensorBased: Bool
+    let score: Int?
+    let distributionBuckets: [StravaZoneBucket]
+
+    enum CodingKeys: String, CodingKey {
+        case type, score
+        case sensorBased = "sensor_based"
+        case distributionBuckets = "distribution_buckets"
+    }
+}
+
+struct StravaZoneBucket: Codable {
+    let min: Int
+    let max: Int
+    let time: Int
+}
+
+struct StravaDetailedGear: Codable {
+    let id: String
+    let name: String
+    let brandName: String?
+    let modelName: String?
+    let distance: Double?
+    let retired: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, distance, retired
+        case brandName = "brand_name"
+        case modelName = "model_name"
+    }
+}
+
+struct StravaSummarySegment: Codable, Sendable {
+    let id: Int64
+    let name: String?
+}
+
+struct StravaSegmentEffort: Codable, Sendable {
+    let id: Int64
+    let name: String
+    let segment: StravaSummarySegment?
+    let distance: Double
+    let elapsedTime: Int
+    let movingTime: Int
+    let startIndex: Int?
+    let endIndex: Int?
+    let averageHeartrate: Double?
+    let maxHeartrate: Double?
+    let averageWatts: Double?
+    let prRank: Int?
+    let komRank: Int?
+    let isKom: Bool?
+    let hidden: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, segment, distance, hidden
+        case elapsedTime = "elapsed_time"
+        case movingTime = "moving_time"
+        case startIndex = "start_index"
+        case endIndex = "end_index"
+        case averageHeartrate = "average_heartrate"
+        case maxHeartrate = "max_heartrate"
+        case averageWatts = "average_watts"
+        case prRank = "pr_rank"
+        case komRank = "kom_rank"
+        case isKom = "is_kom"
+    }
 }
 
 // MARK: - Rate Limit Info
@@ -318,8 +499,9 @@ actor StravaAPIService {
     }
     
     /// Obtiene los detalles completos de una actividad
-    func getActivityDetail(id: Int64) async throws -> StravaActivityDetail {
-        return try await request(endpoint: "/activities/\(id)")
+    func getActivityDetail(id: Int64, includeAllEfforts: Bool = false) async throws -> StravaActivityDetail {
+        let queryItems = includeAllEfforts ? [URLQueryItem(name: "include_all_efforts", value: "true")] : []
+        return try await request(endpoint: "/activities/\(id)", queryItems: queryItems)
     }
     
     /// Obtiene los laps de una actividad
@@ -329,12 +511,21 @@ actor StravaAPIService {
 
     /// Obtiene streams para calcular métricas por parcial.
     func getActivityMetricStreams(id: Int64, includeWatts: Bool) async throws -> StravaActivityStreamsResponse {
-        let keys = includeWatts ? "time,distance,altitude,watts" : "distance,altitude"
+        let baseKeys = "time,distance,altitude,heartrate,cadence,velocity_smooth,moving,grade_smooth,temp"
+        let keys = includeWatts ? "\(baseKeys),watts" : baseKeys
         let queryItems = [
             URLQueryItem(name: "keys", value: keys),
             URLQueryItem(name: "key_by_type", value: "true")
         ]
         return try await request(endpoint: "/activities/\(id)/streams", queryItems: queryItems)
+    }
+
+    func getActivityZones(id: Int64) async throws -> [StravaActivityZone] {
+        return try await request(endpoint: "/activities/\(id)/zones")
+    }
+
+    func getGear(id: String) async throws -> StravaDetailedGear {
+        return try await request(endpoint: "/gear/\(id)")
     }
     
     // MARK: - Private Methods
@@ -436,4 +627,3 @@ actor StravaAPIService {
         )
     }
 }
-

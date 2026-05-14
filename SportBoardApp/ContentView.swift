@@ -79,7 +79,10 @@ struct MainTabView: View {
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(
-        for: Activity.self, ActivityLap.self, ActivitySplit.self, SyncState.self, Athlete.self,
+        for: Activity.self, ActivityLap.self, ActivitySplit.self,
+        ActivityZoneDistribution.self, ActivityStreamSummary.self, StravaGear.self, ActivitySegmentEffort.self,
+        ActivityTempoBlockSplit.self,
+        SyncState.self, Athlete.self,
         configurations: config
     )
     

@@ -27,6 +27,10 @@ final class ActivityLap {
     var negativeElevationLoss: Double?
     var averageWatts: Double?
     var maxWatts: Double?
+    var maxHeartrate: Double?
+    var averageCadence: Double?
+    var averageGrade: Double?
+    var movingTimeFromStream: Int?
     
     var activity: Activity?
     
@@ -46,6 +50,10 @@ final class ActivityLap {
         negativeElevationLoss: Double? = nil,
         averageWatts: Double? = nil,
         maxWatts: Double? = nil,
+        maxHeartrate: Double? = nil,
+        averageCadence: Double? = nil,
+        averageGrade: Double? = nil,
+        movingTimeFromStream: Int? = nil,
         activity: Activity? = nil
     ) {
         self.lapIndex = lapIndex
@@ -63,6 +71,10 @@ final class ActivityLap {
         self.negativeElevationLoss = negativeElevationLoss
         self.averageWatts = averageWatts
         self.maxWatts = maxWatts
+        self.maxHeartrate = maxHeartrate
+        self.averageCadence = averageCadence
+        self.averageGrade = averageGrade
+        self.movingTimeFromStream = movingTimeFromStream
         self.activity = activity
     }
 }
@@ -192,9 +204,11 @@ extension ActivityLap {
         json["tiempo_s"] = movingTime
         json["ritmo"] = ritmo
         json["ritmo_s_km"] = ritmoSKm
-        json["desnivel_m"] = Int(totalElevationGain.rounded())
-        json["desnivel_positivo_m"] = Int(effectivePositiveElevationGain.rounded())
-        json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
+        let positiveElevation = Int(effectivePositiveElevationGain.rounded())
+        let negativeElevation = Int(effectiveNegativeElevationLoss.rounded())
+        json["desnivel_m"] = positiveElevation - negativeElevation
+        json["desnivel_positivo_m"] = positiveElevation
+        json["desnivel_negativo_m"] = negativeElevation
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         json["fc_max"] = NSNull() // Strava no devuelve fc_max por parcial
         json["potencia_media"] = averageWatts != nil ? Int(averageWatts!.rounded()) : NSNull()

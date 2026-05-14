@@ -69,10 +69,29 @@ final class TrainingGoal {
         guard let targetTimeSeconds, targetTimeSeconds > 0 else { return nil }
         let hours = targetTimeSeconds / 3600
         let minutes = (targetTimeSeconds % 3600) / 60
+        let seconds = targetTimeSeconds % 60
         if hours > 0 {
+            if seconds > 0 {
+                return "\(hours)h \(String(format: "%02d", minutes))m \(String(format: "%02d", seconds))s"
+            }
             return "\(hours)h \(String(format: "%02d", minutes))m"
         }
+        if seconds > 0 {
+            return "\(minutes)m \(String(format: "%02d", seconds))s"
+        }
         return "\(minutes)m"
+    }
+
+    var targetPaceText: String? {
+        Self.targetPaceText(distanceMeters: distanceMeters, targetTimeSeconds: targetTimeSeconds)
+    }
+
+    static func targetPaceText(distanceMeters: Double, targetTimeSeconds: Int?) -> String? {
+        guard let targetTimeSeconds, targetTimeSeconds > 0, distanceMeters > 0 else { return nil }
+        let secondsPerKm = Double(targetTimeSeconds) / (distanceMeters / 1000)
+        guard secondsPerKm.isFinite && secondsPerKm > 0 else { return nil }
+        let rounded = Int(secondsPerKm.rounded())
+        return "\(rounded / 60):\(String(format: "%02d", rounded % 60))/km"
     }
 
     func update(

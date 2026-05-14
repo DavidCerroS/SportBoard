@@ -153,7 +153,7 @@ final class WebJSONExporterTests: XCTestCase {
 
         let json = lap.toExportJSONWeb(index: 1)
 
-        XCTAssertEqual(json["desnivel_m"] as? Int, 8)
+        XCTAssertEqual(json["desnivel_m"] as? Int, -3)
         XCTAssertEqual(json["desnivel_positivo_m"] as? Int, 8)
         XCTAssertEqual(json["desnivel_negativo_m"] as? Int, 11)
         XCTAssertEqual(json["potencia_media"] as? Int, 312)
@@ -258,12 +258,381 @@ final class WebJSONExporterTests: XCTestCase {
         XCTAssertEqual(exported["potencia_media"] as? Int, 215)
         XCTAssertEqual(exported["potencia_max"] as? Int, 388)
     }
+
+    func testExportIncludesStravaEnrichmentData() throws {
+        let activity = Activity(
+            id: 456,
+            name: "Media objetivo",
+            sportType: "Run",
+            startDate: Date(timeIntervalSince1970: 0),
+            startDateLocal: Date(timeIntervalSince1970: 0),
+            distance: 21097,
+            movingTime: 5400,
+            elapsedTime: 5480,
+            totalElevationGain: 80,
+            averageSpeed: 21097.0 / 5400.0,
+            maxSpeed: 5.2,
+            averageHeartrate: 158,
+            maxHeartrate: 182,
+            averageWatts: 248,
+            maxWatts: 502,
+            hasPowerMeter: true,
+            workoutType: 0,
+            calories: 1345,
+            gearId: "g123",
+            trainer: false,
+            manual: false,
+            isPrivate: true,
+            flagged: false,
+            elevHigh: 721.4,
+            elevLow: 644.2,
+            summaryPolyline: "abc123",
+            achievementCount: 3,
+            kudosCount: 12,
+            commentCount: 2,
+            athleteCount: 1,
+            photoCount: 0,
+            weightedAverageWatts: 257,
+            hasSplitsMetric: true
+        )
+
+        activity.gear = StravaGear(
+            id: "g123",
+            name: "Vaporfly",
+            brandName: "Nike",
+            modelName: "Next%",
+            distanceMeters: 321_500,
+            retired: false
+        )
+        activity.streamSummary = ActivityStreamSummary(
+            averageCadence: 176.2,
+            maxCadence: 193,
+            averageGrade: 1.25,
+            maxGrade: 7.8,
+            minGrade: -5.1,
+            movingRatio: 0.98,
+            stoppedTimeSeconds: 12,
+            averageMovingPaceSecondsPerKm: 256,
+            cardiacDriftPercent: 4.4,
+            averageTemperature: 16.6
+        )
+        activity.zones = [
+            ActivityZoneDistribution(
+                zoneType: "heartrate",
+                sensorBased: true,
+                score: 62,
+                distributionJSON: """
+                [{"min":120,"max":140,"time":600},{"min":140,"max":160,"time":1800}]
+                """
+            ),
+            ActivityZoneDistribution(
+                zoneType: "power",
+                sensorBased: true,
+                score: nil,
+                distributionJSON: """
+                [{"min":200,"max":260,"time":2000}]
+                """
+            )
+        ]
+        activity.segmentEfforts = [
+            ActivitySegmentEffort(
+                id: 9,
+                name: "Subida final",
+                segmentId: 99,
+                distance: 750,
+                elapsedTime: 210,
+                movingTime: 208,
+                startIndex: 12,
+                endIndex: 32,
+                averageHeartrate: 171,
+                maxHeartrate: 181,
+                averageWatts: 312,
+                prRank: 2
+            )
+        ]
+        activity.tempoBlockSplits = [
+            ActivityTempoBlockSplit(
+                blockLapIndex: 1,
+                splitIndex: 1,
+                name: "Tempo 1",
+                distance: 1000,
+                elapsedTime: 252,
+                movingTime: 251,
+                averageSpeed: 1000.0 / 252.0,
+                elevationDifference: 2,
+                positiveElevationGain: 5,
+                negativeElevationLoss: 3,
+                averageHeartrate: 166,
+                maxHeartrate: 174,
+                averageWatts: 284,
+                maxWatts: 344,
+                averageCadence: 178,
+                averageGrade: 0.2,
+                startDistance: 0,
+                endDistance: 1000,
+                activity: activity
+            )
+        ]
+        activity.splitsMetric = [
+            ActivitySplit(
+                splitIndex: 0,
+                distance: 1000,
+                movingTime: 256,
+                elapsedTime: 256,
+                averageSpeed: 1000.0 / 256.0,
+                averageHeartrate: 160,
+                elevationDifference: 4,
+                averageWatts: 251,
+                maxWatts: 407,
+                maxHeartrate: 168,
+                averageCadence: 177,
+                averageGrade: 0.8,
+                movingTimeFromStream: 254,
+                activity: activity
+            )
+        ]
+
+        let json = WebJSONExporter.exportActivityAsWebJSON(activity)
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let exported = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(exported["potencia_normalizada_estimada"] as? Int, 257)
+        XCTAssertEqual(exported["calorias"] as? Int, 1345)
+        XCTAssertEqual(exported["zapatilla_id"] as? String, "g123")
+        XCTAssertEqual(exported["privada"] as? Bool, true)
+        XCTAssertEqual(exported["altitud_max_m"] as? Double, 721.4)
+        XCTAssertEqual(exported["tiempo_transcurrido_s"] as? Int, 5480)
+        XCTAssertEqual(exported["tiempo_parado_s"] as? Int, 12)
+        XCTAssertNil(exported["polyline_resumen"])
+
+        let gear = try XCTUnwrap(exported["zapatilla"] as? [String: Any])
+        XCTAssertEqual(gear["nombre"] as? String, "Vaporfly")
+        XCTAssertEqual(gear["distancia_total_km"] as? Double, 321.5)
+
+        let streamSummary = try XCTUnwrap(exported["streams_resumen"] as? [String: Any])
+        XCTAssertEqual(streamSummary["cadencia_media"] as? Int, 176)
+        XCTAssertEqual(streamSummary["ratio_movimiento"] as? Double, 0.98)
+        XCTAssertEqual(streamSummary["deriva_cardiaca_pct"] as? Double, 4.4)
+
+        let heartRateZones = try XCTUnwrap(exported["tiempo_zonas_fc_s"] as? [Int])
+        XCTAssertEqual(heartRateZones, [600, 1800])
+
+        let segments = try XCTUnwrap(exported["segmentos"] as? [[String: Any]])
+        let segment = try XCTUnwrap(segments.first)
+        XCTAssertEqual(segment["nombre"] as? String, "Subida final")
+        XCTAssertEqual(segment["ritmo_s_km"] as? Int, 280)
+
+        let tempoDetail = try XCTUnwrap(exported["tempo_detalle"] as? [[String: Any]])
+        let tempoSplit = try XCTUnwrap(tempoDetail.first)
+        XCTAssertEqual(tempoSplit["nombre"] as? String, "Tempo 1")
+        XCTAssertEqual(tempoSplit["ritmo_s_km"] as? Int, 252)
+        XCTAssertEqual(tempoSplit["potencia_media"] as? Int, 284)
+
+        let parciales = try XCTUnwrap(exported["parciales"] as? [[String: Any]])
+        let parcial = try XCTUnwrap(parciales.first)
+        XCTAssertEqual(parcial["fc_max"] as? Int, 168)
+        XCTAssertEqual(parcial["cadencia_media"] as? Int, 177)
+        XCTAssertEqual(parcial["pendiente_media_pct"] as? Double, 0.8)
+        XCTAssertEqual(parcial["tiempo_movimiento_s"] as? Int, 254)
+    }
+
+    func testRealTempoRunMay142026ExportStaysCoherent() throws {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 5
+        components.day = 14
+        components.hour = 9
+        components.minute = 25
+        components.second = 24
+        components.timeZone = TimeZone(identifier: "GMT")
+
+        let date = Calendar(identifier: .gregorian).date(from: components)!
+        let activity = Activity(
+            id: 20260514092524,
+            name: "Carrera de mañana",
+            sportType: "Run",
+            startDate: date,
+            startDateLocal: date,
+            distance: 9250,
+            movingTime: 2883,
+            elapsedTime: 2986,
+            totalElevationGain: 85,
+            averageSpeed: 9250.0 / 2883.0,
+            maxSpeed: 5.4,
+            averageHeartrate: 150,
+            maxHeartrate: 167,
+            averageWatts: 236,
+            maxWatts: 334,
+            hasHeartrate: true,
+            hasPowerMeter: true,
+            calories: 611,
+            gearId: "g29748382",
+            elevHigh: 582.6,
+            elevLow: 562.4,
+            achievementCount: 0,
+            kudosCount: 0,
+            commentCount: 0,
+            athleteCount: 1,
+            photoCount: 0,
+            weightedAverageWatts: 240,
+            hasLaps: true
+        )
+
+        activity.gear = StravaGear(
+            id: "g29748382",
+            name: "ASICS Novablast 5",
+            brandName: "ASICS",
+            modelName: "Novablast 5",
+            distanceMeters: 125_540,
+            retired: false
+        )
+        activity.streamSummary = ActivityStreamSummary(
+            averageGrade: -0.308,
+            maxGrade: 8.4,
+            minGrade: -30.5,
+            movingRatio: 0.955,
+            stoppedTimeSeconds: 133,
+            averageMovingPaceSecondsPerKm: 311,
+            cardiacDriftPercent: 7.959
+        )
+        activity.laps = [
+            ActivityLap(
+                lapIndex: 0,
+                name: "Lap 1",
+                distance: 1420,
+                movingTime: 600,
+                elapsedTime: 600,
+                averageSpeed: 1420.0 / 600.0,
+                maxSpeed: 4.8,
+                averageHeartrate: 133,
+                totalElevationGain: 18,
+                positiveElevationGain: 18,
+                negativeElevationLoss: 30,
+                averageWatts: 196,
+                maxWatts: 317,
+                maxHeartrate: 140,
+                averageGrade: -1.534,
+                movingTimeFromStream: 455,
+                activity: activity
+            ),
+            ActivityLap(
+                lapIndex: 1,
+                name: "Lap 2",
+                distance: 6660,
+                movingTime: 1919,
+                elapsedTime: 1919,
+                averageSpeed: 6660.0 / 1919.0,
+                maxSpeed: 5.8,
+                averageHeartrate: 157,
+                totalElevationGain: 56,
+                positiveElevationGain: 56,
+                negativeElevationLoss: 55,
+                averageWatts: 258,
+                maxWatts: 334,
+                maxHeartrate: 167,
+                averageGrade: 0.145,
+                movingTimeFromStream: 1918,
+                activity: activity
+            ),
+            ActivityLap(
+                lapIndex: 2,
+                name: "Lap 3",
+                distance: 1170,
+                movingTime: 467,
+                elapsedTime: 467,
+                averageSpeed: 1170.0 / 467.0,
+                maxSpeed: 4.6,
+                averageHeartrate: 141,
+                totalElevationGain: 10,
+                positiveElevationGain: 10,
+                negativeElevationLoss: 13,
+                averageWatts: 186,
+                maxWatts: 299,
+                maxHeartrate: 166,
+                averageGrade: -0.582,
+                movingTimeFromStream: 377,
+                activity: activity
+            )
+        ]
+        activity.tempoBlockSplits = [
+            makeTempoSplit(activity: activity, index: 1, distance: 1000, time: 300, positive: 7, negative: 12, hr: 145, maxHr: 151, watts: 241, maxWatts: 276),
+            makeTempoSplit(activity: activity, index: 2, distance: 1000, time: 299, positive: 13, negative: 2, hr: 153, maxHr: 159, watts: 257, maxWatts: 296),
+            makeTempoSplit(activity: activity, index: 3, distance: 1000, time: 287, positive: 4, negative: 13, hr: 156, maxHr: 158, watts: 244, maxWatts: 302),
+            makeTempoSplit(activity: activity, index: 4, distance: 1000, time: 291, positive: 9, negative: 8, hr: 159, maxHr: 163, watts: 260, maxWatts: 293),
+            makeTempoSplit(activity: activity, index: 5, distance: 1000, time: 287, positive: 10, negative: 6, hr: 159, maxHr: 164, watts: 259, maxWatts: 293),
+            makeTempoSplit(activity: activity, index: 6, distance: 1000, time: 275, positive: 4, negative: 13, hr: 163, maxHr: 164, watts: 258, maxWatts: 294),
+            makeTempoSplit(activity: activity, index: 7, distance: 660, time: 179, positive: 9, negative: 1, hr: 164, maxHr: 167, watts: 285, maxWatts: 334)
+        ]
+
+        let json = WebJSONExporter.exportActivityAsWebJSON(activity)
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let exported = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertNil(exported["polyline_resumen"])
+        XCTAssertEqual(exported["tiempo_total_s"] as? Int, 2750)
+        XCTAssertEqual(exported["tiempo_transcurrido_s"] as? Int, 2986)
+        XCTAssertEqual(exported["tiempo_parado_s"] as? Int, 133)
+        XCTAssertEqual(exported["ritmo_medio"] as? String, "4:57 /km")
+
+        let parciales = try XCTUnwrap(exported["parciales"] as? [[String: Any]])
+        XCTAssertEqual(parciales.compactMap { $0["tiempo_s"] as? Int }.reduce(0, +), exported["tiempo_total_s"] as? Int)
+        XCTAssertEqual(parciales.compactMap { $0["distancia_km"] as? Double }.reduce(0, +), exported["distancia_km"] as? Double ?? 0, accuracy: 0.01)
+        XCTAssertEqual(parciales.compactMap { $0["desnivel_m"] as? Int }.reduce(0, +), -14)
+
+        let tempoDetail = try XCTUnwrap(exported["tempo_detalle"] as? [[String: Any]])
+        let tempoDistance = tempoDetail.compactMap { $0["distancia_km"] as? Double }.reduce(0, +)
+        let tempoTime = tempoDetail.compactMap { $0["tiempo_s"] as? Int }.reduce(0, +)
+        let tempoPositive = tempoDetail.compactMap { $0["desnivel_positivo_m"] as? Int }.reduce(0, +)
+        let tempoNegative = tempoDetail.compactMap { $0["desnivel_negativo_m"] as? Int }.reduce(0, +)
+        let tempoNet = tempoDetail.compactMap { $0["desnivel_m"] as? Int }.reduce(0, +)
+
+        XCTAssertEqual(tempoDistance, 6.66, accuracy: 0.001)
+        XCTAssertEqual(tempoTime, 1918)
+        XCTAssertEqual(tempoPositive, 56)
+        XCTAssertEqual(tempoNegative, 55)
+        XCTAssertEqual(tempoNet, 1)
+        XCTAssertEqual(tempoDetail.last?["distancia_km"] as? Double, 0.66)
+    }
     
     private func loadGoldenFile(named name: String) throws -> String {
         let baseURL = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
         let url = baseURL.appendingPathComponent("GoldenFiles/\(name).json")
         return try String(contentsOf: url, encoding: .utf8)
+    }
+
+    private func makeTempoSplit(
+        activity: Activity,
+        index: Int,
+        distance: Double,
+        time: Int,
+        positive: Double,
+        negative: Double,
+        hr: Double,
+        maxHr: Double,
+        watts: Double,
+        maxWatts: Double
+    ) -> ActivityTempoBlockSplit {
+        let start = Double(index - 1) * 1000
+        return ActivityTempoBlockSplit(
+            blockLapIndex: 2,
+            splitIndex: index,
+            name: "Tempo \(index)",
+            distance: distance,
+            elapsedTime: time,
+            movingTime: time,
+            averageSpeed: distance / Double(time),
+            elevationDifference: positive - negative,
+            positiveElevationGain: positive,
+            negativeElevationLoss: negative,
+            averageHeartrate: hr,
+            maxHeartrate: maxHr,
+            averageWatts: watts,
+            maxWatts: maxWatts,
+            startDistance: start,
+            endDistance: start + distance,
+            activity: activity
+        )
     }
     
     private func printDetailedDiff(expected: String, actual: String) {
@@ -336,4 +705,3 @@ final class WebJSONExporterTests: XCTestCase {
         }
     }
 }
-

@@ -29,6 +29,7 @@ struct RaceGoal {
     var distanceName: String
     var raceDate: Date
     var targetTimeText: String?
+    var targetPaceText: String?
     var objective: String
 }
 
@@ -260,6 +261,7 @@ extension RaceGoal {
             distanceName: trainingGoal.distanceName,
             raceDate: trainingGoal.raceDate,
             targetTimeText: trainingGoal.targetTimeText,
+            targetPaceText: trainingGoal.targetPaceText,
             objective: trainingGoal.objective
         )
     }
@@ -431,6 +433,7 @@ struct RacePreparationService {
             distanceName: "21,1 km",
             raceDate: components.date ?? Date(),
             targetTimeText: "1h 35m",
+            targetPaceText: "4:30/km",
             objective: "Llegar fuerte y sano al 8 de noviembre"
         )
     }

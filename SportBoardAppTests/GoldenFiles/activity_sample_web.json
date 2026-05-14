@@ -5,12 +5,34 @@
   "distancia_km": 9.3,
   "tiempo_total": "56m 23s",
   "tiempo_total_s": 3383,
+  "tiempo_transcurrido_s": 3500,
+  "tiempo_parado_s": 117,
   "ritmo_medio": "6:04 /km",
   "desnivel_positivo_m": 125,
   "fc_media": 152,
   "fc_max": 178,
   "potencia_media": 215,
   "potencia_max": 388,
+  "potencia_normalizada_estimada": null,
+  "calorias": null,
+  "tipo_entreno_strava": null,
+  "zapatilla_id": null,
+  "zapatilla": null,
+  "manual": false,
+  "privada": false,
+  "flagged": false,
+  "indoor": false,
+  "altitud_max_m": null,
+  "altitud_min_m": null,
+  "logros_count": null,
+  "kudos_count": null,
+  "comentarios_count": null,
+  "atletas_count": null,
+  "fotos_count": null,
+  "streams_resumen": null,
+  "zonas": [],
+  "tiempo_zonas_fc_s": [],
+  "tiempo_zonas_potencia_s": [],
   "tipo_parciales": "kilometros",
   "parciales": [
     {
@@ -143,5 +165,7 @@
       "desnivel_negativo_m": 0,
       "fc_media": 155
     }
-  ]
+  ],
+  "segmentos": [],
+  "tempo_detalle": []
 }

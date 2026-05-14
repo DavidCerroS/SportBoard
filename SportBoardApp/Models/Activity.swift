@@ -26,14 +26,38 @@ final class Activity {
     var averageWatts: Double?
     var maxWatts: Double?
     var kilojoules: Double?
-    var hasHeartrate: Bool
-    var hasPowerMeter: Bool
+    var hasHeartrate: Bool = false
+    var hasPowerMeter: Bool = false
     var deviceName: String?
     var activityDescription: String?
+    var workoutType: Int?
+    var calories: Double?
+    var gearId: String?
+    var trainer: Bool = false
+    var manual: Bool = false
+    var isPrivate: Bool = false
+    var flagged: Bool = false
+    var elevHigh: Double?
+    var elevLow: Double?
+    var startLatitude: Double?
+    var startLongitude: Double?
+    var endLatitude: Double?
+    var endLongitude: Double?
+    var summaryPolyline: String?
+    var achievementCount: Int?
+    var kudosCount: Int?
+    var commentCount: Int?
+    var athleteCount: Int?
+    var photoCount: Int?
+    var weightedAverageWatts: Double?
     
     // Flags para saber qué datos tiene
-    var hasLaps: Bool
-    var hasSplitsMetric: Bool
+    var hasLaps: Bool = false
+    var hasSplitsMetric: Bool = false
+    var zonesFetched: Bool = false
+    var streamsSummaryFetched: Bool = false
+    var gearFetched: Bool = false
+    var segmentEffortsFetched: Bool = false
     
     // Relaciones
     @Relationship(deleteRule: .cascade, inverse: \ActivityLap.activity)
@@ -41,10 +65,24 @@ final class Activity {
     
     @Relationship(deleteRule: .cascade, inverse: \ActivitySplit.activity)
     var splitsMetric: [ActivitySplit]?
+
+    @Relationship(deleteRule: .cascade, inverse: \ActivityZoneDistribution.activity)
+    var zones: [ActivityZoneDistribution]?
+
+    @Relationship(deleteRule: .cascade, inverse: \ActivityStreamSummary.activity)
+    var streamSummary: ActivityStreamSummary?
+
+    var gear: StravaGear?
+
+    @Relationship(deleteRule: .cascade, inverse: \ActivitySegmentEffort.activity)
+    var segmentEfforts: [ActivitySegmentEffort]?
+
+    @Relationship(deleteRule: .cascade, inverse: \ActivityTempoBlockSplit.activity)
+    var tempoBlockSplits: [ActivityTempoBlockSplit]?
     
     // Metadatos de sincronización
     var syncedAt: Date
-    var detailsFetched: Bool
+    var detailsFetched: Bool = false
     
     init(
         id: Int64,
@@ -67,10 +105,39 @@ final class Activity {
         hasPowerMeter: Bool = false,
         deviceName: String? = nil,
         activityDescription: String? = nil,
+        workoutType: Int? = nil,
+        calories: Double? = nil,
+        gearId: String? = nil,
+        trainer: Bool = false,
+        manual: Bool = false,
+        isPrivate: Bool = false,
+        flagged: Bool = false,
+        elevHigh: Double? = nil,
+        elevLow: Double? = nil,
+        startLatitude: Double? = nil,
+        startLongitude: Double? = nil,
+        endLatitude: Double? = nil,
+        endLongitude: Double? = nil,
+        summaryPolyline: String? = nil,
+        achievementCount: Int? = nil,
+        kudosCount: Int? = nil,
+        commentCount: Int? = nil,
+        athleteCount: Int? = nil,
+        photoCount: Int? = nil,
+        weightedAverageWatts: Double? = nil,
         hasLaps: Bool = false,
         hasSplitsMetric: Bool = false,
+        zonesFetched: Bool = false,
+        streamsSummaryFetched: Bool = false,
+        gearFetched: Bool = false,
+        segmentEffortsFetched: Bool = false,
         laps: [ActivityLap]? = nil,
         splitsMetric: [ActivitySplit]? = nil,
+        zones: [ActivityZoneDistribution]? = nil,
+        streamSummary: ActivityStreamSummary? = nil,
+        gear: StravaGear? = nil,
+        segmentEfforts: [ActivitySegmentEffort]? = nil,
+        tempoBlockSplits: [ActivityTempoBlockSplit]? = nil,
         syncedAt: Date = Date(),
         detailsFetched: Bool = false
     ) {
@@ -94,10 +161,39 @@ final class Activity {
         self.hasPowerMeter = hasPowerMeter
         self.deviceName = deviceName
         self.activityDescription = activityDescription
+        self.workoutType = workoutType
+        self.calories = calories
+        self.gearId = gearId
+        self.trainer = trainer
+        self.manual = manual
+        self.isPrivate = isPrivate
+        self.flagged = flagged
+        self.elevHigh = elevHigh
+        self.elevLow = elevLow
+        self.startLatitude = startLatitude
+        self.startLongitude = startLongitude
+        self.endLatitude = endLatitude
+        self.endLongitude = endLongitude
+        self.summaryPolyline = summaryPolyline
+        self.achievementCount = achievementCount
+        self.kudosCount = kudosCount
+        self.commentCount = commentCount
+        self.athleteCount = athleteCount
+        self.photoCount = photoCount
+        self.weightedAverageWatts = weightedAverageWatts
         self.hasLaps = hasLaps
         self.hasSplitsMetric = hasSplitsMetric
+        self.zonesFetched = zonesFetched
+        self.streamsSummaryFetched = streamsSummaryFetched
+        self.gearFetched = gearFetched
+        self.segmentEffortsFetched = segmentEffortsFetched
         self.laps = laps
         self.splitsMetric = splitsMetric
+        self.zones = zones
+        self.streamSummary = streamSummary
+        self.gear = gear
+        self.segmentEfforts = segmentEfforts
+        self.tempoBlockSplits = tempoBlockSplits
         self.syncedAt = syncedAt
         self.detailsFetched = detailsFetched
     }
@@ -158,6 +254,22 @@ extension Activity {
     var sortedSplits: [ActivitySplit]? {
         guard hasSplitsMetric, let splits = splitsMetric, !splits.isEmpty else { return nil }
         return splits.sorted { $0.splitIndex < $1.splitIndex }
+    }
+
+    var sortedVisibleSegmentEfforts: [ActivitySegmentEffort] {
+        (segmentEfforts ?? [])
+            .filter { !$0.hidden }
+            .sorted { $0.startIndex ?? 0 < $1.startIndex ?? 0 }
+    }
+
+    var sortedTempoBlockSplits: [ActivityTempoBlockSplit] {
+        (tempoBlockSplits ?? [])
+            .sorted {
+                if $0.blockLapIndex == $1.blockLapIndex {
+                    return $0.splitIndex < $1.splitIndex
+                }
+                return $0.blockLapIndex < $1.blockLapIndex
+            }
     }
 }
 

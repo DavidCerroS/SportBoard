@@ -83,6 +83,10 @@ struct ActivityDetailView: View {
                         LapsTableView(laps: viewModel.laps, sportType: activity.sportType)
                     }
 
+                    if viewModel.hasTempoDetail {
+                        TempoBlockSplitsTableView(splits: viewModel.tempoBlockSplits)
+                    }
+
                     // Splits (por km) si existen y no hay laps
                     if viewModel.showSplitsSection {
                         SplitsTableView(splits: viewModel.splits, sportType: activity.sportType)

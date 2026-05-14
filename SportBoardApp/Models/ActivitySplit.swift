@@ -23,6 +23,10 @@ final class ActivitySplit {
     var negativeElevationLoss: Double?
     var averageWatts: Double?
     var maxWatts: Double?
+    var maxHeartrate: Double?
+    var averageCadence: Double?
+    var averageGrade: Double?
+    var movingTimeFromStream: Int?
     var paceZone: Int? // zona de ritmo (1-5)
     
     var activity: Activity?
@@ -39,6 +43,10 @@ final class ActivitySplit {
         negativeElevationLoss: Double? = nil,
         averageWatts: Double? = nil,
         maxWatts: Double? = nil,
+        maxHeartrate: Double? = nil,
+        averageCadence: Double? = nil,
+        averageGrade: Double? = nil,
+        movingTimeFromStream: Int? = nil,
         paceZone: Int? = nil,
         activity: Activity? = nil
     ) {
@@ -53,6 +61,10 @@ final class ActivitySplit {
         self.negativeElevationLoss = negativeElevationLoss
         self.averageWatts = averageWatts
         self.maxWatts = maxWatts
+        self.maxHeartrate = maxHeartrate
+        self.averageCadence = averageCadence
+        self.averageGrade = averageGrade
+        self.movingTimeFromStream = movingTimeFromStream
         self.paceZone = paceZone
         self.activity = activity
     }
@@ -271,9 +283,11 @@ extension ActivitySplit {
         json["tiempo_s"] = elapsedTime
         json["ritmo"] = ritmo
         json["ritmo_s_km"] = ritmoSKmValue
-        json["desnivel_m"] = Int(elevationDifference.rounded())
-        json["desnivel_positivo_m"] = Int(effectivePositiveElevationGain.rounded())
-        json["desnivel_negativo_m"] = Int(effectiveNegativeElevationLoss.rounded())
+        let positiveElevation = Int(effectivePositiveElevationGain.rounded())
+        let negativeElevation = Int(effectiveNegativeElevationLoss.rounded())
+        json["desnivel_m"] = positiveElevation - negativeElevation
+        json["desnivel_positivo_m"] = positiveElevation
+        json["desnivel_negativo_m"] = negativeElevation
         json["fc_media"] = averageHeartrate != nil ? Int(averageHeartrate!.rounded()) : NSNull()
         json["potencia_media"] = averageWatts != nil ? Int(averageWatts!.rounded()) : NSNull()
         json["potencia_max"] = maxWatts != nil ? Int(maxWatts!.rounded()) : NSNull()
@@ -287,4 +301,3 @@ extension ActivitySplit {
         return (value * 100).rounded() / 100
     }
 }
-

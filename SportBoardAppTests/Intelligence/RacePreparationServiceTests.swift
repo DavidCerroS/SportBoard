@@ -39,6 +39,7 @@ final class RacePreparationServiceTests: XCTestCase {
         XCTAssertEqual(preparation?.goal.name, "10K objetivo")
         XCTAssertEqual(preparation?.goal.distanceName, "10 km")
         XCTAssertEqual(preparation?.goal.targetTimeText, "45m")
+        XCTAssertEqual(preparation?.goal.targetPaceText, "4:30/km")
         XCTAssertEqual(preparation?.weekPlan.count, 3)
         XCTAssertEqual(preparation?.source, .activeGoal)
     }
@@ -54,19 +55,20 @@ final class RacePreparationServiceTests: XCTestCase {
             name: "Rodaje test",
             distanceMeters: 6_800,
             raceDate: Date(),
-            targetTimeSeconds: 30 * 60,
+            targetTimeSeconds: 30 * 60 + 15,
             objective: "Personalizado"
         )
 
         XCTAssertEqual(fiveK.distanceName, "5 km")
         XCTAssertEqual(custom.distanceName, "6.8 km")
-        XCTAssertEqual(custom.targetTimeText, "30m")
+        XCTAssertEqual(custom.targetTimeText, "30m 15s")
+        XCTAssertEqual(custom.targetPaceText, "4:27/km")
     }
 
     func testHighReadinessRiskAdaptsKeyWorkoutToEasyRun() {
         let now = FixtureLoader.dateInMadrid(year: 2026, month: 6, day: 1, hour: 9, minute: 0)
         let raceDate = FixtureLoader.dateInMadrid(year: 2026, month: 10, day: 4, hour: 9, minute: 0)
-        let goal = RaceGoal(name: "Media", distanceName: "21,1 km", raceDate: raceDate, targetTimeText: "1h 35m", objective: "Llegar bien")
+        let goal = RaceGoal(name: "Media", distanceName: "21,1 km", raceDate: raceDate, targetTimeText: "1h 35m", targetPaceText: "4:30/km", objective: "Llegar bien")
 
         let preparation = RacePreparationService.evaluateFromActivities(
             [],
@@ -102,7 +104,7 @@ final class RacePreparationServiceTests: XCTestCase {
             averageHeartrate: 142,
             hasHeartrate: true
         )
-        let goal = RaceGoal(name: "Media", distanceName: "21,1 km", raceDate: raceDate, targetTimeText: "1h 35m", objective: "Llegar bien")
+        let goal = RaceGoal(name: "Media", distanceName: "21,1 km", raceDate: raceDate, targetTimeText: "1h 35m", targetPaceText: "4:30/km", objective: "Llegar bien")
 
         let preparation = RacePreparationService.evaluateFromActivities(
             [activity],

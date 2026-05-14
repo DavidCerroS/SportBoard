@@ -11,8 +11,7 @@ struct IntelligenceView: View {
     @Bindable var viewModel: DashboardViewModel
 
     @State private var isDiagnosisExpanded = false
-    @State private var showImportPlan = false
-    @State private var showGoalEditor = false
+    @State private var activeSheet: IntelligenceSheet?
 
     private var readiness: TrainingReadiness? {
         viewModel.trainingReadiness
@@ -42,13 +41,13 @@ struct IntelligenceView: View {
                     } else if let readiness {
                         CoachReadinessHero(readiness: readiness)
                         CoachGoalSetupCard {
-                            showGoalEditor = true
+                            activeSheet = .goalEditor
                         }
                         CoachNextMoveCard(readiness: readiness)
                         CoachSignalBoard(readiness: readiness)
                     } else {
                         CoachEmptyState {
-                            showGoalEditor = true
+                            activeSheet = .goalEditor
                         }
                     }
 
@@ -64,7 +63,7 @@ struct IntelligenceView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showGoalEditor = true
+                        activeSheet = .goalEditor
                     } label: {
                         Image(systemName: viewModel.activeTrainingGoal == nil ? "target" : "target")
                     }
@@ -73,24 +72,26 @@ struct IntelligenceView: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showImportPlan = true
+                        activeSheet = .importPlan
                     } label: {
                         Image(systemName: "square.and.arrow.down")
                     }
                     .accessibilityLabel("Importar plan mensual")
                 }
             }
-            .sheet(isPresented: $showImportPlan) {
-                ImportMonthlyPlanView {
-                    viewModel.loadStats()
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .importPlan:
+                    ImportMonthlyPlanView {
+                        viewModel.loadStats()
+                    }
+                    .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
+                case .goalEditor:
+                    TrainingGoalEditorView(viewModel: viewModel) {
+                        viewModel.loadStats()
+                    }
+                    .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
                 }
-                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
-            }
-            .sheet(isPresented: $showGoalEditor) {
-                TrainingGoalEditorView(viewModel: viewModel) {
-                    viewModel.loadStats()
-                }
-                .presentationBackground(SportBoardTheme.Palette.backgroundBottom)
             }
             .refreshable {
                 viewModel.loadStats()
@@ -111,6 +112,13 @@ struct IntelligenceView: View {
             }
         }
     }
+}
+
+private enum IntelligenceSheet: String, Identifiable {
+    case importPlan
+    case goalEditor
+
+    var id: String { rawValue }
 }
 
 private struct ImportMonthlyPlanView: View {
@@ -207,6 +215,7 @@ private struct TrainingGoalEditorView: View {
     @State private var useTargetTime = true
     @State private var targetHours = 1
     @State private var targetMinutes = 35
+    @State private var targetSeconds = 0
     @State private var objective = "Llegar fuerte y sano"
     @State private var sessionsPerWeek = 4
     @State private var preferredWeekdayOffsets: Set<Int> = [0, 1, 3, 5]
@@ -246,6 +255,27 @@ private struct TrainingGoalEditorView: View {
                     if useTargetTime {
                         Stepper("Horas: \(targetHours)", value: $targetHours, in: 0...5)
                         Stepper("Minutos: \(targetMinutes)", value: $targetMinutes, in: 0...59)
+                        Stepper("Segundos: \(targetSeconds)", value: $targetSeconds, in: 0...59)
+
+                        if let targetPacePreview {
+                            HStack(spacing: 10) {
+                                Image(systemName: "speedometer")
+                                    .foregroundStyle(SportBoardTheme.Palette.accent)
+                                    .accessibilityHidden(true)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(targetPacePreview)
+                                        .font(.headline.weight(.bold))
+                                        .foregroundStyle(.white)
+
+                                    Text("Ritmo objetivo")
+                                        .font(.caption)
+                                        .foregroundStyle(SportBoardTheme.Palette.mutedText)
+                                }
+                            }
+                            .padding(12)
+                            .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: SportBoardTheme.Radius.small, style: .continuous))
+                        }
                     }
 
                     TextField("Objetivo", text: $objective, axis: .vertical)
@@ -324,6 +354,7 @@ private struct TrainingGoalEditorView: View {
             useTargetTime = true
             targetHours = targetTimeSeconds / 3600
             targetMinutes = (targetTimeSeconds % 3600) / 60
+            targetSeconds = targetTimeSeconds % 60
         } else {
             useTargetTime = false
         }
@@ -365,8 +396,15 @@ private struct TrainingGoalEditorView: View {
 
     private var targetTimeSeconds: Int? {
         guard useTargetTime else { return nil }
-        let seconds = targetHours * 3600 + targetMinutes * 60
+        let seconds = targetHours * 3600 + targetMinutes * 60 + targetSeconds
         return seconds > 0 ? seconds : nil
+    }
+
+    private var targetPacePreview: String? {
+        TrainingGoal.targetPaceText(
+            distanceMeters: distancePreset == .custom ? parsedCustomDistanceMeters : distanceMeters,
+            targetTimeSeconds: targetTimeSeconds
+        )
     }
 }
 
@@ -654,6 +692,9 @@ private struct RaceGoalHero: View {
         var parts = [raceDateText, "Fase \(preparation.phase.title.lowercased())"]
         if let targetTime = preparation.goal.targetTimeText {
             parts.append("Objetivo \(targetTime)")
+        }
+        if let targetPace = preparation.goal.targetPaceText {
+            parts.append(targetPace)
         }
         return parts.joined(separator: " · ")
     }
@@ -1565,7 +1606,10 @@ private struct FlowChips: View {
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(
-        for: Activity.self, ActivityLap.self, ActivitySplit.self, SyncState.self,
+        for: Activity.self, ActivityLap.self, ActivitySplit.self,
+        ActivityZoneDistribution.self, ActivityStreamSummary.self, StravaGear.self, ActivitySegmentEffort.self,
+        ActivityTempoBlockSplit.self,
+        SyncState.self,
         RunnerProfile.self, TrainingGoal.self, PostActivityReflection.self,
         configurations: config
     )

@@ -210,6 +210,10 @@ final class ActivityDetailViewModel {
         // Mostrar splits solo si no hay laps O si los splits existen
         hasSplits && !hasLaps
     }
+
+    var hasTempoDetail: Bool {
+        !activity.sortedTempoBlockSplits.isEmpty
+    }
     
     var laps: [ActivityLap] {
         activity.sortedLaps ?? []
@@ -217,5 +221,9 @@ final class ActivityDetailViewModel {
     
     var splits: [ActivitySplit] {
         activity.sortedSplits ?? []
+    }
+
+    var tempoBlockSplits: [ActivityTempoBlockSplit] {
+        activity.sortedTempoBlockSplits
     }
 }
